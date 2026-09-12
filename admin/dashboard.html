@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solsticio | Panel Administrador</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #faf8f5; color: #2b2b2b; }
+    header { background: #1c1c1c; color: #fff; padding: 20px 40px; }
+    header h1 { font-weight: 300; letter-spacing: 4px; text-transform: uppercase; font-size: 20px; }
+
+    nav { display: flex; gap: 5px; background: #fff; padding: 0 40px; border-bottom: 1px solid #eee; }
+    nav button { padding: 14px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #888; border-bottom: 3px solid transparent; }
+    nav button.activo { color: #1c1c1c; border-bottom: 3px solid #1c1c1c; font-weight: 600; }
+
+    main { padding: 30px 40px; }
+    .tab { display: none; }
+    .tab.activo { display: block; }
+
+    .panel { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .panel h2 { font-size: 16px; margin-bottom: 14px; }
+
+    .fila { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    input, select, button { padding: 9px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+    button { background: #1c1c1c; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #3a3a3a; }
+    button.peligro { background: #fde3e3; color: #b30000; }
+    button.peligro:hover { background: #f8caca; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #eee; }
+    th { color: #888; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+    input.stock-input { width: 70px; padding: 5px; }
+
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .kpi { background: #fff; border-radius: 10px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .kpi .valor { font-size: 26px; font-weight: bold; }
+    .kpi .etiqueta { font-size: 12px; color: #888; text-transform: uppercase; }
+
+    .barra-fondo { background: #eee; border-radius: 6px; height: 10px; width: 100%; overflow: hidden; }
+    .barra { background: #1c1c1c; height: 100%; }
+
+    .aviso { font-size: 13px; padding: 10px; border-radius: 6px; margin-top: 10px; }
+    .aviso.ok { background: #e3f6e3; color: #1e7a1e; }
+    .aviso.error { background: #fde3e3; color: #b30000; }
+  </style>
+</head>
+<body>
+
+  <header><h1>Solsticio · Panel Administrador</h1></header>
+
+  <nav>
+    <button class="tab-btn activo" data-tab="inventario">Inventario</button>
+    <button class="tab-btn" data-tab="productos">Productos</button>
+    <button class="tab-btn" data-tab="categorias">Categorías</button>
+    <button class="tab-btn" data-tab="reportes">Reportes de ventas</button>
+  </nav>
+
+  <main>
+
+    <!-- ================= INVENTARIO ================= -->
+    <section id="tab-inventario" class="tab activo">
+      <div class="panel">
+        <h2>Inventario multisede</h2>
+        <div class="fila">
+          <select id="filtro-sede-inv"><option value="">Todas las sedes</option></select>
+          <button onclick="cargarInventario()">Filtrar</button>
+        </div>
+        <table id="tabla-inventario">
+          <thead><tr><th>Producto</th><th>SKU</th><th>Sede</th><th>Cantidad</th><th>Ajustar</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= PRODUCTOS ================= -->
+    <section id="tab-productos" class="tab">
+      <div class="panel">
+        <h2>Nuevo producto</h2>
+        <div class="fila">
+          <input id="np-sku" placeholder="SKU (ej: CAM-004)">
+          <input id="np-nombre" placeholder="Nombre">
+          <input id="np-precio" type="number" placeholder="Precio">
+          <select id="np-categoria"></select>
+        </div>
+        <div class="fila">
+          <input id="np-talla" placeholder="Talla (ej: M)">
+          <input id="np-color" placeholder="Color">
+          <input id="np-imagen" placeholder="URL de imagen (opcional)" style="flex:1">
+        </div>
+        <button onclick="crearProducto()">Crear producto</button>
+        <div id="aviso-producto"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Catálogo</h2>
+        <table id="tabla-productos">
+          <thead><tr><th>Nombre</th><th>SKU</th><th>Categoría</th><th>Precio</th><th>Stock total</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= CATEGORÍAS ================= -->
+    <section id="tab-categorias" class="tab">
+      <div class="panel">
+        <h2>Categorías de ropa</h2>
+        <div class="fila">
+          <input id="nc-nombre" placeholder="Nueva categoría (ej: Vestidos)">
+          <button onclick="crearCategoria()">Agregar</button>
+        </div>
+        <table id="tabla-categorias">
+          <thead><tr><th>Nombre</th><th>Acciones</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= REPORTES ================= -->
+    <section id="tab-reportes" class="tab">
+      <div class="kpis" id="kpis-reportes"></div>
+
+      <div class="panel">
+        <h2>Ventas por sede</h2>
+        <table id="tabla-ventas-sede">
+          <thead><tr><th>Sede</th><th># Pedidos</th><th>Total vendido</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>Productos más vendidos</h2>
+        <div id="ranking-productos"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const API_URL = "http://127.0.0.1:5000/api";
+    let sedes = [], categorias = [], productos = [], pedidos = [];
+
+    // ---------- NAVEGACIÓN DE PESTAÑAS ----------
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("activo"));
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("activo"));
+        btn.classList.add("activo");
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add("activo");
+      });
+    });
+
+    async function init() {
+      sedes = await fetch(`${API_URL}/sedes`).then(r => r.json());
+      categorias = await fetch(`${API_URL}/categorias`).then(r => r.json());
+
+      llenarSelectSedes();
+      llenarSelectCategorias();
+      await Promise.all([cargarInventario(), cargarProductos(), cargarCategorias(), cargarReportes()]);
+    }
+
+    function llenarSelectSedes() {
+      const select = document.getElementById("filtro-sede-inv");
+      sedes.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.id; opt.textContent = s.nombre;
+        select.appendChild(opt);
+      });
+    }
+
+    function llenarSelectCategorias() {
+      const select = document.getElementById("np-categoria");
+      select.innerHTML = "";
+      categorias.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.id; opt.textContent = c.nombre;
+        select.appendChild(opt);
+      });
+    }
+
+    // ================= INVENTARIO =================
+    async function cargarInventario() {
+      const sedeId = document.getElementById("filtro-sede-inv").value;
+      const url = sedeId ? `${API_URL}/inventario?sede_id=${sedeId}` : `${API_URL}/inventario`;
+      const registros = await fetch(url).then(r => r.json());
+
+      const tbody = document.querySelector("#tabla-inventario tbody");
+      tbody.innerHTML = "";
+
+      registros.forEach(r => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${r.producto}</td>
+          <td>${r.sede}</td>
+          <td>${r.cantidad}</td>
+          <td>
+            <input type="number" class="stock-input" id="input-stock-${r.producto_id}-${r.sede_id}" placeholder="nueva cant.">
+            <button onclick="ajustarStock(${r.producto_id}, ${r.sede_id})">Guardar</button>
+          </td>
+        `;
+        // Nota: se repite "sede" en dos columnas por simplicidad visual; ajusta según necesites SKU real.
+        tbody.appendChild(fila);
+      });
+    }
+
+    async function ajustarStock(productoId, sedeId) {
+      const input = document.getElementById(`input-stock-${productoId}-${sedeId}`);
+      const cantidad = parseInt(input.value);
+      if (isNaN(cantidad) || cantidad < 0) return alert("Ingresa una cantidad válida");
+
+      await fetch(`${API_URL}/inventario/${productoId}/${sedeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cantidad })
+      });
+
+      cargarInventario();
+      cargarProductos();
+    }
+
+    // ================= PRODUCTOS =================
+    async function cargarProductos() {
+      productos = await fetch(`${API_URL}/productos`).then(r => r.json());
+      const tbody = document.querySelector("#tabla-productos tbody");
+      tbody.innerHTML = "";
+
+      productos.forEach(p => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${p.nombre}</td>
+          <td>${p.sku}</td>
+          <td>${p.categoria || "-"}</td>
+          <td>$${p.precio.toLocaleString('es-CO')}</td>
+          <td>${p.stock_total}</td>
+          <td>${p.activo ? "Activo" : "Inactivo"}</td>
+          <td><button class="peligro" onclick="desactivarProducto(${p.id})">Desactivar</button></td>
+        `;
+        tbody.appendChild(fila);
+      });
+    }
+
+    async function crearProducto() {
+      const avisoDiv = document.getElementById("aviso-producto");
+      const body = {
+        sku: document.getElementById("np-sku").value.trim(),
+        nombre: document.getElementById("np-nombre").value.trim(),
+        precio: parseFloat(document.getElementById("np-precio").value),
+        categoria_id: parseInt(document.getElementById("np-categoria").value),
+        talla: document.getElementById("np-talla").value.trim() || "U",
+        color: document.getElementById("np-color").value.trim(),
+        imagen_url: document.getElementById("np-imagen").value.trim(),
+        stock_inicial: sedes.map(s => ({ sede_id: s.id, cantidad: 0 })) // se ajusta luego desde Inventario
+      };
+
+      if (!body.sku || !body.nombre || !body.precio || !body.categoria_id) {
+        avisoDiv.innerHTML = `<div class="aviso error">Completa SKU, nombre, precio y categoría</div>`;
+        return;
+      }
+
+      const respuesta = await fetch(`${API_URL}/productos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await respuesta.json();
+
+      if (!respuesta.ok) {
+        avisoDiv.innerHTML = `<div class="aviso error">${data.error}</div>`;
+        return;
+      }
+
+      avisoDiv.innerHTML = `<div class="aviso ok">Producto "${data.nombre}" creado correctamente</div>`;
+      ["np-sku", "np-nombre", "np-precio", "np-talla", "np-color", "np-imagen"].forEach(id => document.getElementById(id).value = "");
+      cargarProductos();
+      cargarInventario();
+    }
+
+    async function desactivarProducto(id) {
+      if (!confirm("¿Desactivar este producto? Dejará de mostrarse en el catálogo.")) return;
+      await fetch(`${API_URL}/productos/${id}`, { method: "DELETE" });
+      cargarProductos();
+    }
+
+    // ================= CATEGORÍAS =================
+    async function cargarCategorias() {
+      categorias = await fetch(`${API_URL}/categorias`).then(r => r.json());
+      llenarSelectCategorias();
+
+      const tbody = document.querySelector("#tabla-categorias tbody");
+      tbody.innerHTML = "";
+      categorias.forEach(c => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `<td>${c.nombre}</td><td><button class="peligro" onclick="eliminarCategoria(${c.id})">Eliminar</button></td>`;
+        tbody.appendChild(fila);
+      });
+    }
+
+    async function crearCategoria() {
+      const nombre = document.getElementById("nc-nombre").value.trim();
+      if (!nombre) return;
+      await fetch(`${API_URL}/categorias`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre })
+      });
+      document.getElementById("nc-nombre").value = "";
+      cargarCategorias();
+    }
+
+    async function eliminarCategoria(id) {
+      if (!confirm("¿Eliminar esta categoría? Los productos asociados quedarían sin categoría.")) return;
+      const respuesta = await fetch(`${API_URL}/categorias/${id}`, { method: "DELETE" });
+      if (!respuesta.ok) {
+        const data = await respuesta.json();
+        alert(data.error || "No se pudo eliminar");
+      }
+      cargarCategorias();
+    }
+
+    // ================= REPORTES =================
+    async function cargarReportes() {
+      pedidos = await fetch(`${API_URL}/pedidos`).then(r => r.json());
+
+      const pedidosValidos = pedidos.filter(p => p.estado !== "cancelado");
+      const totalVentas = pedidosValidos.reduce((acc, p) => acc + p.total, 0);
+      const totalPedidos = pedidosValidos.length;
+      const ticketPromedio = totalPedidos ? totalVentas / totalPedidos : 0;
+
+      document.getElementById("kpis-reportes").innerHTML = `
+        <div class="kpi"><div class="valor">$${totalVentas.toLocaleString('es-CO')}</div><div class="etiqueta">Ventas totales</div></div>
+        <div class="kpi"><div class="valor">${totalPedidos}</div><div class="etiqueta">Pedidos válidos</div></div>
+        <div class="kpi"><div class="valor">$${Math.round(ticketPromedio).toLocaleString('es-CO')}</div><div class="etiqueta">Ticket promedio</div></div>
+      `;
+
+      // Ventas por sede
+      const porSede = {};
+      pedidosValidos.forEach(p => {
+        if (!porSede[p.sede]) porSede[p.sede] = { pedidos: 0, total: 0 };
+        porSede[p.sede].pedidos += 1;
+        porSede[p.sede].total += p.total;
+      });
+
+      const tbodySede = document.querySelector("#tabla-ventas-sede tbody");
+      tbodySede.innerHTML = "";
+      Object.entries(porSede).forEach(([sede, datos]) => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `<td>${sede}</td><td>${datos.pedidos}</td><td>$${datos.total.toLocaleString('es-CO')}</td>`;
+        tbodySede.appendChild(fila);
+      });
+
+      // Ranking de productos más vendidos
+      const ventasPorProducto = {};
+      pedidosValidos.forEach(p => {
+        p.detalles.forEach(d => {
+          ventasPorProducto[d.producto] = (ventasPorProducto[d.producto] || 0) + d.cantidad;
+        });
+      });
+
+      const ranking = Object.entries(ventasPorProducto).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const maxCantidad = ranking.length ? ranking[0][1] : 1;
+
+      const contenedorRanking = document.getElementById("ranking-productos");
+      contenedorRanking.innerHTML = ranking.map(([nombre, cantidad]) => `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>${nombre}</span><span>${cantidad} und.</span>
+          </div>
+          <div class="barra-fondo"><div class="barra" style="width:${(cantidad / maxCantidad) * 100}%"></div></div>
+        </div>
+      `).join("") || "<p style='color:#999;font-size:13px'>Aún no hay ventas registradas.</p>";
+    }
+
+    init();
+  </script>
+</body>
+</html>

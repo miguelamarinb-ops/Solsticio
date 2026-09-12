@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solsticio | Mostrador</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #faf8f5; color: #2b2b2b; }
+    header { background: #1c1c1c; color: #fff; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-weight: 300; letter-spacing: 4px; text-transform: uppercase; font-size: 20px; }
+    header select { padding: 6px 10px; border-radius: 6px; border: none; }
+
+    .layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; padding: 30px 40px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .panel { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .panel h2 { font-size: 16px; margin-bottom: 14px; border-bottom: 2px solid #1c1c1c; padding-bottom: 8px; display: inline-block; }
+
+    .fila { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    input, select, button { padding: 9px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+    button { background: #1c1c1c; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #3a3a3a; }
+    button.secundario { background: #eee; color: #1c1c1c; }
+    button.secundario:hover { background: #ddd; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
+    th { color: #888; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+
+    .carrito-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ddd; font-size: 14px; }
+    .carrito-item button { background: #fde3e3; color: #b30000; padding: 4px 10px; }
+
+    .total { font-size: 20px; font-weight: bold; text-align: right; margin-top: 10px; }
+
+    .resultado-qr { background: #f4f6ff; border: 1px dashed #7b8cff; border-radius: 8px; padding: 14px; margin-top: 12px; font-size: 13px; white-space: pre-wrap; }
+    .aviso { font-size: 13px; padding: 10px; border-radius: 6px; margin-top: 10px; }
+    .aviso.ok { background: #e3f6e3; color: #1e7a1e; }
+    .aviso.error { background: #fde3e3; color: #b30000; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Solsticio · Mostrador</h1>
+    <div>
+      Sede actual:
+      <select id="sede-trabajador"></select>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+      <!-- NUEVO PEDIDO -->
+      <div class="panel">
+        <h2>Nuevo pedido en mostrador</h2>
+
+        <div class="fila">
+          <input type="text" id="cliente-nombre" placeholder="Nombre del cliente" style="flex:1">
+          <input type="text" id="cliente-documento" placeholder="Documento (opcional)" style="flex:1">
+        </div>
+
+        <div class="fila">
+          <select id="select-producto" style="flex:2"></select>
+          <input type="number" id="cantidad-producto" value="1" min="1" style="width:80px">
+          <button onclick="agregarAlCarrito()">Agregar</button>
+        </div>
+
+        <div id="carrito"></div>
+        <div class="total" id="total-carrito">Total: $0</div>
+
+        <div class="fila" style="margin-top:14px">
+          <button onclick="confirmarPedido()">Confirmar pedido</button>
+          <button class="secundario" onclick="vaciarCarrito()">Vaciar</button>
+        </div>
+
+        <div id="aviso-pedido"></div>
+      </div>
+
+      <!-- CONSULTAR STOCK EN OTRAS SEDES -->
+      <div class="panel">
+        <h2>Stock en otras sedes</h2>
+        <div class="fila">
+          <select id="select-producto-stock" style="flex:1"></select>
+          <button onclick="consultarStockOtrasSedes()">Consultar</button>
+        </div>
+        <table id="tabla-stock-sedes">
+          <thead><tr><th>Sede</th><th>Cantidad</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- COLUMNA DERECHA -->
+    <div>
+      <!-- LECTOR QR -->
+      <div class="panel">
+        <h2>Escanear código QR</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:10px">
+          Prototipo: pega o simula el texto que leería la cámara al escanear el QR
+          de una prenda o del ticket de un pedido.
+        </p>
+        <div class="fila">
+          <input type="text" id="input-qr" placeholder="Ej: SOLSTICIO-SKU-CAM-001" style="flex:1">
+          <button onclick="leerQR()">Leer QR</button>
+        </div>
+        <div class="fila">
+          <button class="secundario" onclick="simularEscaneoProducto()">Simular escaneo de prenda</button>
+          <button class="secundario" onclick="simularEscaneoPedido()">Simular escaneo de pedido</button>
+        </div>
+        <div id="resultado-qr"></div>
+      </div>
+
+      <!-- PEDIDOS RECIENTES DE LA SEDE -->
+      <div class="panel">
+        <h2>Pedidos recientes de esta sede</h2>
+        <table id="tabla-pedidos">
+          <thead><tr><th>#</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:5000/api";
+    let productos = [];
+    let carrito = []; // [{producto_id, nombre, precio, cantidad}]
+
+    async function init() {
+      await cargarSedes();
+      await cargarProductos();
+      await cargarPedidosRecientes();
+
+      document.getElementById("sede-trabajador").addEventListener("change", cargarPedidosRecientes);
+    }
+
+    async function cargarSedes() {
+      const sedes = await fetch(`${API_URL}/sedes`).then(r => r.json());
+      const select = document.getElementById("sede-trabajador");
+      sedes.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = s.nombre;
+        select.appendChild(opt);
+      });
+    }
+
+    async function cargarProductos() {
+      productos = await fetch(`${API_URL}/productos`).then(r => r.json());
+
+      const selects = [document.getElementById("select-producto"), document.getElementById("select-producto-stock")];
+      selects.forEach(select => {
+        select.innerHTML = "";
+        productos.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.nombre} (${p.sku}) - $${p.precio.toLocaleString('es-CO')}`;
+          select.appendChild(opt);
+        });
+      });
+    }
+
+    // ---------- CARRITO / PEDIDO ----------
+    function agregarAlCarrito() {
+      const productoId = parseInt(document.getElementById("select-producto").value);
+      const cantidad = parseInt(document.getElementById("cantidad-producto").value) || 1;
+      const producto = productos.find(p => p.id === productoId);
+      if (!producto) return;
+
+      const existente = carrito.find(i => i.producto_id === productoId);
+      if (existente) {
+        existente.cantidad += cantidad;
+      } else {
+        carrito.push({ producto_id: productoId, nombre: producto.nombre, precio: producto.precio, cantidad });
+      }
+      renderCarrito();
+    }
+
+    function quitarDelCarrito(productoId) {
+      carrito = carrito.filter(i => i.producto_id !== productoId);
+      renderCarrito();
+    }
+
+    function vaciarCarrito() {
+      carrito = [];
+      renderCarrito();
+    }
+
+    function renderCarrito() {
+      const contenedor = document.getElementById("carrito");
+      contenedor.innerHTML = "";
+      let total = 0;
+
+      carrito.forEach(item => {
+        total += item.precio * item.cantidad;
+        const div = document.createElement("div");
+        div.className = "carrito-item";
+        div.innerHTML = `
+          <span>${item.cantidad} x ${item.nombre} — $${(item.precio * item.cantidad).toLocaleString('es-CO')}</span>
+          <button onclick="quitarDelCarrito(${item.producto_id})">Quitar</button>
+        `;
+        contenedor.appendChild(div);
+      });
+
+      document.getElementById("total-carrito").textContent = `Total: $${total.toLocaleString('es-CO')}`;
+    }
+
+    async function confirmarPedido() {
+      const avisoDiv = document.getElementById("aviso-pedido");
+      avisoDiv.innerHTML = "";
+
+      const clienteNombre = document.getElementById("cliente-nombre").value.trim();
+      const sedeId = parseInt(document.getElementById("sede-trabajador").value);
+
+      if (!clienteNombre) return mostrarAviso(avisoDiv, "Ingresa el nombre del cliente", false);
+      if (carrito.length === 0) return mostrarAviso(avisoDiv, "El carrito está vacío", false);
+
+      const body = {
+        cliente_nombre: clienteNombre,
+        cliente_documento: document.getElementById("cliente-documento").value.trim(),
+        canal: "mostrador",
+        sede_id: sedeId,
+        items: carrito.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad }))
+      };
+
+      try {
+        const respuesta = await fetch(`${API_URL}/pedidos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await respuesta.json();
+
+        if (!respuesta.ok) {
+          return mostrarAviso(avisoDiv, data.error || "Error al crear el pedido", false);
+        }
+
+        mostrarAviso(avisoDiv, `Pedido #${data.id} creado correctamente. Total: $${data.total.toLocaleString('es-CO')}`, true);
+        vaciarCarrito();
+        document.getElementById("cliente-nombre").value = "";
+        document.getElementById("cliente-documento").value = "";
+        cargarPedidosRecientes();
+        cargarProductos(); // refresca stock mostrado en los selects
+      } catch (err) {
+        mostrarAviso(avisoDiv, "No se pudo conectar con el servidor", false);
+      }
+    }
+
+    function mostrarAviso(el, mensaje, ok) {
+      el.innerHTML = `<div class="aviso ${ok ? 'ok' : 'error'}">${mensaje}</div>`;
+    }
+
+    // ---------- STOCK EN OTRAS SEDES ----------
+    async function consultarStockOtrasSedes() {
+      const productoId = document.getElementById("select-producto-stock").value;
+      const detalle = await fetch(`${API_URL}/productos/${productoId}`).then(r => r.json());
+
+      const tbody = document.querySelector("#tabla-stock-sedes tbody");
+      tbody.innerHTML = "";
+      (detalle.stock_por_sede || []).forEach(s => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `<td>${s.sede}</td><td>${s.cantidad} und.</td>`;
+        tbody.appendChild(fila);
+      });
+    }
+
+    // ---------- LECTOR QR (simulado) ----------
+    async function leerQR() {
+      const payload = document.getElementById("input-qr").value.trim();
+      const resultadoDiv = document.getElementById("resultado-qr");
+      if (!payload) return;
+
+      try {
+        const respuesta = await fetch(`${API_URL}/qr/leer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ payload })
+        });
+        const data = await respuesta.json();
+
+        if (!respuesta.ok) {
+          resultadoDiv.innerHTML = `<div class="aviso error">${data.error}</div>`;
+          return;
+        }
+
+        resultadoDiv.innerHTML = `<div class="resultado-qr">${JSON.stringify(data, null, 2)}</div>`;
+      } catch (err) {
+        resultadoDiv.innerHTML = `<div class="aviso error">No se pudo conectar con el servidor</div>`;
+      }
+    }
+
+    function simularEscaneoProducto() {
+      if (productos.length === 0) return;
+      const aleatorio = productos[Math.floor(Math.random() * productos.length)];
+      document.getElementById("input-qr").value = aleatorio.qr_payload;
+      leerQR();
+    }
+
+    function simularEscaneoPedido() {
+      // Simula el escaneo del ticket del último pedido consultado
+      document.getElementById("input-qr").value = "SOLSTICIO-PEDIDO-1";
+      leerQR();
+    }
+
+    // ---------- PEDIDOS RECIENTES ----------
+    async function cargarPedidosRecientes() {
+      const sedeId = document.getElementById("sede-trabajador").value;
+      if (!sedeId) return;
+
+      const pedidos = await fetch(`${API_URL}/pedidos?sede_id=${sedeId}`).then(r => r.json());
+      const tbody = document.querySelector("#tabla-pedidos tbody");
+      tbody.innerHTML = "";
+
+      pedidos.slice(0, 8).forEach(p => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `<td>#${p.id}</td><td>${p.cliente_nombre}</td><td>$${p.total.toLocaleString('es-CO')}</td><td>${p.estado}</td>`;
+        tbody.appendChild(fila);
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
