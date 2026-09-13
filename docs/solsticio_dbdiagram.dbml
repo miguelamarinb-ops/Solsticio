@@ -1,0 +1,284 @@
+// =====================================================================
+// SOLSTICIO - Diagrama Entidad-Relacion
+// Pegar este contenido en https://dbdiagram.io y exportar como PNG
+// =====================================================================
+
+Table categoria {
+  id_categoria int [pk, increment]
+  nombre varchar(60) [not null, unique]
+  descripcion varchar(200)
+  activo boolean [not null, default: true]
+}
+
+Table producto {
+  id_producto int [pk, increment]
+  id_categoria int [not null, ref: > categoria.id_categoria]
+  nombre varchar(120) [not null]
+  descripcion text
+  precio_base decimal(12,2) [not null]
+  genero enum [not null]
+  activo boolean [not null, default: true]
+  fecha_creacion datetime [not null]
+}
+
+Table talla {
+  id_talla int [pk, increment]
+  valor varchar(10) [not null, unique]
+  orden tinyint [not null]
+}
+
+Table color {
+  id_color int [pk, increment]
+  nombre varchar(40) [not null, unique]
+  codigo_hex char(7)
+}
+
+Table variante {
+  id_variante int [pk, increment]
+  id_producto int [not null, ref: > producto.id_producto]
+  id_talla int [not null, ref: > talla.id_talla]
+  id_color int [not null, ref: > color.id_color]
+  sku varchar(40) [not null, unique]
+  codigo_qr varchar(80) [not null, unique]
+  precio_adicional decimal(12,2) [not null, default: 0]
+  activo boolean [not null, default: true]
+
+  Indexes {
+    (id_producto, id_talla, id_color) [unique]
+  }
+}
+
+Table imagen_producto {
+  id_imagen int [pk, increment]
+  id_producto int [not null, ref: > producto.id_producto]
+  url varchar(255) [not null]
+  orden tinyint [not null]
+  es_principal boolean [not null, default: false]
+}
+
+Table sede {
+  id_sede int [pk, increment]
+  nombre varchar(80) [not null, unique]
+  direccion varchar(150) [not null]
+  ciudad varchar(60) [not null]
+  telefono varchar(20)
+  activo boolean [not null, default: true]
+}
+
+Table rol {
+  id_rol int [pk, increment]
+  nombre varchar(40) [not null, unique]
+  descripcion varchar(150)
+}
+
+Table usuario {
+  id_usuario int [pk, increment]
+  id_rol int [not null, ref: > rol.id_rol]
+  id_sede int [ref: > sede.id_sede]
+  documento varchar(20) [not null, unique]
+  nombres varchar(80) [not null]
+  apellidos varchar(80) [not null]
+  email varchar(120) [not null, unique]
+  hash_password varchar(255) [not null]
+  activo boolean [not null, default: true]
+  fecha_registro datetime [not null]
+}
+
+Table cliente {
+  id_cliente int [pk, increment]
+  id_usuario int [unique, ref: - usuario.id_usuario]
+  tipo_documento enum [not null]
+  numero_documento varchar(20) [not null, unique]
+  nombres varchar(80) [not null]
+  apellidos varchar(80)
+  email varchar(120)
+  telefono varchar(20)
+  direccion varchar(150)
+}
+
+Table stock {
+  id_sede int [pk, ref: > sede.id_sede]
+  id_variante int [pk, ref: > variante.id_variante]
+  cantidad int [not null, default: 0]
+  cantidad_reservada int [not null, default: 0]
+  stock_minimo int [not null, default: 0]
+}
+
+Table movimiento_inventario {
+  id_movimiento bigint [pk, increment]
+  id_variante int [not null, ref: > variante.id_variante]
+  id_sede int [not null, ref: > sede.id_sede]
+  tipo enum [not null]
+  cantidad int [not null]
+  id_usuario int [ref: > usuario.id_usuario]
+  tipo_referencia varchar(30)
+  id_referencia bigint
+  observacion varchar(200)
+  fecha datetime [not null]
+}
+
+Table traslado {
+  id_traslado int [pk, increment]
+  id_sede_origen int [not null, ref: > sede.id_sede]
+  id_sede_destino int [not null, ref: > sede.id_sede]
+  id_usuario_solicita int [not null, ref: > usuario.id_usuario]
+  id_usuario_recibe int [ref: > usuario.id_usuario]
+  estado enum [not null]
+  fecha_solicitud datetime [not null]
+  fecha_recepcion datetime
+}
+
+Table detalle_traslado {
+  id_detalle_traslado int [pk, increment]
+  id_traslado int [not null, ref: > traslado.id_traslado]
+  id_variante int [not null, ref: > variante.id_variante]
+  cantidad int [not null]
+}
+
+Table pedido {
+  id_pedido bigint [pk, increment]
+  id_cliente int [ref: > cliente.id_cliente]
+  id_sede int [not null, ref: > sede.id_sede]
+  id_usuario int [ref: > usuario.id_usuario]
+  canal enum [not null, note: 'WEB / TIENDA']
+  tipo_entrega enum [not null]
+  estado enum [not null]
+  codigo_qr varchar(80) [not null, unique]
+  subtotal decimal(12,2) [not null]
+  impuestos decimal(12,2) [not null]
+  total decimal(12,2) [not null]
+  fecha_pedido datetime [not null]
+}
+
+Table detalle_pedido {
+  id_detalle_pedido bigint [pk, increment]
+  id_pedido bigint [not null, ref: > pedido.id_pedido]
+  id_variante int [not null, ref: > variante.id_variante]
+  cantidad int [not null]
+  precio_unitario decimal(12,2) [not null, note: 'Dato historico inmutable']
+  subtotal_linea decimal(12,2) [not null]
+}
+
+Table envio {
+  id_envio bigint [pk, increment]
+  id_pedido bigint [not null, unique, ref: - pedido.id_pedido]
+  direccion varchar(150) [not null]
+  ciudad varchar(60) [not null]
+  destinatario varchar(120) [not null]
+  telefono_contacto varchar(20) [not null]
+  transportadora varchar(60)
+  numero_guia varchar(60)
+  estado enum [not null]
+  fecha_despacho datetime
+  fecha_entrega datetime
+}
+
+Table metodo_pago {
+  id_metodo_pago int [pk, increment]
+  nombre varchar(50) [not null, unique]
+  tipo enum [not null]
+  activo boolean [not null, default: true]
+}
+
+Table pago {
+  id_pago bigint [pk, increment]
+  id_pedido bigint [not null, ref: > pedido.id_pedido]
+  id_metodo_pago int [not null, ref: > metodo_pago.id_metodo_pago]
+  monto decimal(12,2) [not null]
+  estado enum [not null]
+  referencia_transaccion varchar(80) [unique]
+  fecha_pago datetime [not null]
+}
+
+Table factura {
+  id_factura bigint [pk, increment]
+  id_pedido bigint [not null, unique, ref: - pedido.id_pedido]
+  numero_factura varchar(30) [not null, unique]
+  prefijo varchar(10) [not null]
+  cufe varchar(100) [unique]
+  estado_dian enum [not null]
+  subtotal decimal(12,2) [not null]
+  iva decimal(12,2) [not null]
+  total decimal(12,2) [not null]
+  fecha_emision datetime [not null]
+  fecha_validacion datetime
+  url_xml varchar(255)
+}
+
+Table devolucion {
+  id_devolucion bigint [pk, increment]
+  id_pedido bigint [not null, ref: > pedido.id_pedido]
+  id_sede int [not null, ref: > sede.id_sede]
+  id_usuario int [not null, ref: > usuario.id_usuario]
+  tipo enum [not null, note: 'CAMBIO / DEVOLUCION']
+  motivo varchar(200) [not null]
+  estado enum [not null]
+  fecha_solicitud datetime [not null]
+}
+
+Table detalle_devolucion {
+  id_detalle_devolucion bigint [pk, increment]
+  id_devolucion bigint [not null, ref: > devolucion.id_devolucion]
+  id_detalle_pedido bigint [not null, ref: > detalle_pedido.id_detalle_pedido]
+  cantidad int [not null]
+  id_variante_cambio int [ref: > variante.id_variante]
+}
+
+Table nota_credito {
+  id_nota_credito bigint [pk, increment]
+  id_devolucion bigint [not null, unique, ref: - devolucion.id_devolucion]
+  id_factura bigint [not null, ref: > factura.id_factura]
+  numero_nota varchar(30) [not null, unique]
+  cude varchar(100) [unique]
+  monto decimal(12,2) [not null]
+  estado_dian enum [not null]
+  fecha_emision datetime [not null]
+}
+
+// ---------------------------------------------------------------------
+// MODULO OPCIONAL: NOMINA
+// Sin respaldo en los casos de uso de la seccion 2. Descomentar solo si
+// se agregan el actor y los casos de uso correspondientes.
+// ---------------------------------------------------------------------
+
+// Table contrato {
+//   id_contrato int [pk, increment]
+//   id_usuario int [not null, ref: > usuario.id_usuario]
+//   tipo_contrato enum [not null]
+//   cargo varchar(80) [not null]
+//   salario_base decimal(12,2) [not null]
+//   fecha_inicio date [not null]
+//   fecha_fin date
+//   estado enum [not null]
+// }
+
+// Table periodo_nomina {
+//   id_periodo int [pk, increment]
+//   anio smallint [not null]
+//   mes tinyint [not null]
+//   quincena tinyint [not null]
+//   fecha_inicio date [not null]
+//   fecha_fin date [not null]
+//   estado enum [not null]
+// }
+
+// Table novedad_nomina {
+//   id_novedad bigint [pk, increment]
+//   id_contrato int [not null, ref: > contrato.id_contrato]
+//   id_periodo int [not null, ref: > periodo_nomina.id_periodo]
+//   tipo enum [not null]
+//   cantidad decimal(8,2) [not null]
+//   valor decimal(12,2) [not null]
+//   descripcion varchar(200)
+// }
+
+// Table liquidacion_nomina {
+//   id_liquidacion bigint [pk, increment]
+//   id_contrato int [not null, ref: > contrato.id_contrato]
+//   id_periodo int [not null, ref: > periodo_nomina.id_periodo]
+//   salario_devengado decimal(12,2) [not null]
+//   total_devengos decimal(12,2) [not null]
+//   total_deducciones decimal(12,2) [not null]
+//   total_pagar decimal(12,2) [not null]
+//   fecha_pago date
+// }

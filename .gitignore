@@ -1,0 +1,16 @@
+# Configuración local con claves
+.env
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+legacy/prototipo/env/
+
+# Python
+__pycache__/
+*.pyc
+
+# Bases de datos locales
+instance/
+*.db

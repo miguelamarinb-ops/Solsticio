@@ -1,0 +1,1037 @@
+{
+  "info": {
+    "_postman_id": "288b4186-36a0-4d68-8cee-0aab5eb43547",
+    "name": "Solsticio API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "POST /api/v1/auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica a un usuario del personal con email y contraseña y devuelve un token JWT (HS256, válido 1 hora). El token se envía en los demás endpoints protegidos con la cabecera Authorization: Bearer <token>.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@solsticio.com\",\n  \"password\": \"Admin12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.access_token) { pm.collectionVariables.set('token', d.access_token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/v1/auth/perfil",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/perfil",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "perfil"
+              ]
+            },
+            "description": "Devuelve los datos del usuario dueño del token: nombres, rol y sede asignada. Si el token falta, es inválido o expiró responde 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo",
+      "item": [
+        {
+          "name": "GET /api/v1/categorias",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/categorias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias"
+              ]
+            },
+            "description": "Lista las categorías activas del catálogo. Se usa para construir los filtros de la tienda virtual.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/sedes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sedes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sedes"
+              ]
+            },
+            "description": "Lista las sedes activas de Solsticio con dirección y teléfono.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/productos?categoria=1&genero=UNISEX&page=1&size=20",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos?categoria=1&genero=UNISEX&page=1&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "1"
+                },
+                {
+                  "key": "genero",
+                  "value": "UNISEX"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Catálogo paginado de productos activos. Filtros opcionales: categoria, genero, q (búsqueda por nombre), page y size. Cada producto trae su existencia total en la cadena y las tallas con existencias.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/productos/1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1"
+              ]
+            },
+            "description": "Detalle de un producto con sus imágenes y todas sus variantes (talla + color). Cada variante incluye el arreglo disponibilidad con las existencias desglosadas por sede, para que el cliente sepa a qué local ir.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/variantes/qr/SOL-V-000001",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/variantes/qr/SOL-V-000001",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "variantes",
+                "qr",
+                "SOL-V-000001"
+              ]
+            },
+            "description": "Resuelve el código QR impreso en la etiqueta de una prenda. Devuelve la referencia (SKU), el precio final y la disponibilidad por sede. Si el código no existe responde 404.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/variantes/1/disponibilidad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/variantes/1/disponibilidad",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "variantes",
+                "1",
+                "disponibilidad"
+              ]
+            },
+            "description": "Consulta usada por el trabajador para ubicar una prenda agotada en su sede: muestra por cada sede la cantidad, las unidades reservadas y lo disponible.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/tallas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tallas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tallas"
+              ]
+            },
+            "description": "Listas de apoyo con los identificadores de tallas y colores, necesarios para crear variantes.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventario",
+      "item": [
+        {
+          "name": "GET /api/v1/stock",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/stock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stock"
+              ]
+            },
+            "description": "Existencias por sede y variante. El trabajador solo ve el stock de su sede; el administrador puede filtrar por id_sede. Filtros: id_variante, id_producto, bajo_minimo=true."
+          }
+        },
+        {
+          "name": "POST /api/v1/inventario/ingresos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventario/ingresos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "ingresos"
+              ]
+            },
+            "description": "Registra la entrada de mercancía a una sede. Por cada prenda suma existencias y crea un movimiento de inventario tipo INGRESO con el stock anterior y el actual, lo que deja trazabilidad del cambio.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sede\": 1,\n  \"observacion\": \"Remisión TEXTIL-4471\",\n  \"items\": [\n    {\n      \"id_variante\": 1,\n      \"cantidad\": 20\n    },\n    {\n      \"id_variante\": 2,\n      \"cantidad\": 15\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/inventario/ajustes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventario/ajustes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "ajustes"
+              ]
+            },
+            "description": "Ajuste por conteo físico: se envía la cantidad contada y el sistema calcula la diferencia y la registra como movimiento tipo AJUSTE. La observación es obligatoria.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sede\": 1,\n  \"observacion\": \"Conteo físico\",\n  \"items\": [\n    {\n      \"id_variante\": 2,\n      \"cantidad_contada\": 13\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/inventario/movimientos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/inventario/movimientos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "movimientos"
+              ]
+            },
+            "description": "Historial paginado de todos los movimientos de inventario (ingresos, ventas, traslados y ajustes). Filtros: id_sede, id_variante, tipo, desde y hasta (AAAA-MM-DD)."
+          }
+        },
+        {
+          "name": "POST /api/v1/traslados",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/traslados",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "traslados"
+              ]
+            },
+            "description": "Solicita un traslado de mercancía entre dos sedes distintas. Valida que la sede de origen tenga existencias suficientes; si no las tiene, responde 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_sede_origen\": 2,\n  \"id_sede_destino\": 1,\n  \"items\": [\n    {\n      \"id_variante\": 1,\n      \"cantidad\": 4\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/v1/traslados/1/despachar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/traslados/1/despachar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "traslados",
+                "1",
+                "despachar"
+              ]
+            },
+            "description": "Despacha el traslado: descuenta las unidades de la sede de origen con un movimiento TRASLADO_SALIDA y deja el traslado EN_TRANSITO."
+          }
+        },
+        {
+          "name": "PATCH /api/v1/traslados/1/recibir",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/traslados/1/recibir",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "traslados",
+                "1",
+                "recibir"
+              ]
+            },
+            "description": "Confirma la recepción en la sede de destino: suma las unidades con un movimiento TRASLADO_ENTRADA y deja el traslado RECIBIDO."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pedidos y ventas",
+      "item": [
+        {
+          "name": "POST /api/v1/pedidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos"
+              ]
+            },
+            "description": "Registra una venta. Con canal WEB la hace el cliente sin token; con canal TIENDA la hace un trabajador en su sede. Valida las existencias de la sede y reserva las unidades. Si no alcanzan, responde 409 indicando las otras sedes que sí tienen la prenda. Los precios se copian al pedido como dato histórico.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"canal\": \"WEB\",\n  \"id_sede\": 1,\n  \"tipo_entrega\": \"DOMICILIO\",\n  \"cliente\": {\n    \"tipo_documento\": \"CC\",\n    \"numero_documento\": \"1020304050\",\n    \"nombres\": \"Andrés\",\n    \"apellidos\": \"Rivera\",\n    \"email\": \"andres@correo.com\",\n    \"telefono\": \"3001234567\"\n  },\n  \"envio\": {\n    \"direccion\": \"Carrera 15 # 82-30\",\n    \"ciudad\": \"Bogotá\",\n    \"destinatario\": \"Andrés Rivera\",\n    \"telefono_contacto\": \"3001234567\"\n  },\n  \"items\": [\n    {\n      \"id_variante\": 1,\n      \"cantidad\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/pedidos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos"
+              ]
+            },
+            "description": "Lista paginada de pedidos. El trabajador solo ve los de su sede. Filtros: estado, canal, id_sede (solo administrador)."
+          }
+        },
+        {
+          "name": "GET /api/v1/pedidos/1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pedidos/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "1"
+              ]
+            },
+            "description": "Detalle completo del pedido: cliente, ítems, totales con IVA, envío, pagos y factura."
+          }
+        },
+        {
+          "name": "GET /api/v1/pedidos/qr/SOL-P-00000001",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pedidos/qr/SOL-P-00000001",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "qr",
+                "SOL-P-00000001"
+              ]
+            },
+            "description": "Consulta del comprobante al escanear el QR del pedido. Incluye el estado del pago, la factura y la acción sugerida para el trabajador (COBRAR, ENTREGAR_EN_TIENDA, DESPACHAR, etc.)."
+          }
+        },
+        {
+          "name": "PATCH /api/v1/pedidos/1/estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pedidos/1/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "Cambia el estado del pedido respetando el flujo PAGADO → PREPARANDO → ENVIADO → ENTREGADO, o PENDIENTE → CANCELADO, que libera las unidades reservadas. Las transiciones inválidas responden 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"ENVIADO\",\n  \"transportadora\": \"Servientrega\",\n  \"numero_guia\": \"SV123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pagos",
+      "item": [
+        {
+          "name": "GET /api/v1/metodos-pago",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/metodos-pago",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "metodos-pago"
+              ]
+            },
+            "description": "Lista los métodos de pago disponibles (efectivo, tarjetas, PSE).",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/pedidos/1/pagos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pedidos/1/pagos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "1",
+                "pagos"
+              ]
+            },
+            "description": "Procesa el cobro con la pasarela simulada. Si se aprueba, descuenta el stock con movimientos tipo VENTA, deja el pedido PAGADO y emite la factura automáticamente. Para probar un rechazo se envía \"simular_rechazo\": true, y la respuesta es 402.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_metodo_pago\": 4,\n  \"monto\": 159800\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Facturación",
+      "item": [
+        {
+          "name": "POST /api/v1/pedidos/1/factura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/pedidos/1/factura",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pedidos",
+                "1",
+                "factura"
+              ]
+            },
+            "description": "Emite la factura electrónica de un pedido pagado y la transmite a la DIAN (simulada), que asigna el CUFE. Si la DIAN falla, la factura queda PENDIENTE (502) sin afectar la venta y se puede reintentar con el mismo endpoint."
+          }
+        },
+        {
+          "name": "GET /api/v1/facturas/1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/facturas/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "facturas",
+                "1"
+              ]
+            },
+            "description": "Consulta una factura con su CUFE, estado ante la DIAN y totales."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Administración",
+      "item": [
+        {
+          "name": "POST /api/v1/productos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            },
+            "description": "Crea un producto (diseño comercial) con sus imágenes. La talla y el color no van aquí sino en las variantes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_categoria\": 1,\n  \"nombre\": \"Camiseta oversize algodón\",\n  \"descripcion\": \"Camiseta de corte amplio en algodón 100%\",\n  \"precio_base\": 79900,\n  \"genero\": \"UNISEX\",\n  \"imagenes\": [\n    {\n      \"url\": \"/media/productos/frente.jpg\",\n      \"orden\": 1,\n      \"es_principal\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/v1/productos/1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1"
+              ]
+            },
+            "description": "Actualiza todos los datos de un producto. Un cambio de precio no altera las ventas anteriores.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_categoria\": 1,\n  \"nombre\": \"Camiseta oversize algodón\",\n  \"precio_base\": 84900,\n  \"genero\": \"UNISEX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/v1/productos/1",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1"
+              ]
+            },
+            "description": "Borrado lógico: marca el producto como inactivo (activo = false) para conservar el histórico de ventas y movimientos. Responde 204 sin contenido."
+          }
+        },
+        {
+          "name": "POST /api/v1/productos/1/variantes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1/variantes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1",
+                "variantes"
+              ]
+            },
+            "description": "Genera las variantes (talla + color) de un producto. El sistema construye automáticamente el SKU y el código QR de etiqueta. Las combinaciones que ya existen se reportan en omitidas.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"combinaciones\": [\n    {\n      \"id_talla\": 3,\n      \"id_color\": 1,\n      \"precio_adicional\": 0\n    },\n    {\n      \"id_talla\": 4,\n      \"id_color\": 1,\n      \"precio_adicional\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/categorias",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/categorias",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias"
+              ]
+            },
+            "description": "Crea una categoría del catálogo. Si el nombre ya existe responde 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Camisas\",\n  \"descripcion\": \"Camisas y camisetas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/sedes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sedes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sedes"
+              ]
+            },
+            "description": "Registra una nueva sede de la cadena.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Solsticio Usaquén\",\n  \"direccion\": \"Calle 119 # 6-15\",\n  \"telefono\": \"6013009900\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/usuarios",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/usuarios",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios"
+              ]
+            },
+            "description": "Crea un usuario del personal. Un TRABAJADOR debe tener sede asignada; un ADMINISTRADOR es global. La contraseña se guarda cifrada con bcrypt.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documento\": \"1000000002\",\n  \"nombres\": \"Carlos\",\n  \"apellidos\": \"Méndez\",\n  \"email\": \"carlos@solsticio.com\",\n  \"password\": \"Trabajador123\",\n  \"rol\": \"TRABAJADOR\",\n  \"id_sede\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
