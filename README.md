@@ -657,7 +657,7 @@ El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pesta�
 
 ### Diseño
 
-Índigo denim, papel frío y un solo acento amarillo, reservado para el precio (que va en una etiqueta colgante) y para lo que pide atención en el panel. La tipografía es [Archivo](https://fonts.google.com/specimen/Archivo), usando su eje de ancho: expandida para la marca y los títulos, condensada para la etiqueta de la ficha técnica. Las prendas de ejemplo tienen ilustraciones SVG propias (`web/recursos/img/prendas/`). Los QR se generan en el navegador con [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), incluida en `web/recursos/vendor/` para que funcione sin internet.
+Índigo denim, papel frío y un solo acento amarillo, reservado para el precio (que va en una etiqueta colgante) y para lo que pide atención en el panel. La tipografía es [Archivo](https://fonts.google.com/specimen/Archivo) (licencia SIL OFL), incluida en `web/recursos/fuentes/` para que la interfaz se vea igual sin internet, y usa su eje de ancho: expandida para la marca y los títulos, condensada para la etiqueta de la ficha técnica. Todos los colores son variables CSS en `:root` (`estilos.css`); los bordes de los campos tienen contraste de 3,7:1 y los textos de al menos 4,5:1 (WCAG AA). Las prendas de ejemplo tienen ilustraciones SVG propias (`web/recursos/img/prendas/`). Los QR se generan en el navegador con [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), incluida en `web/recursos/vendor/` para que funcione sin internet.
 
 ## Endpoints
 
@@ -766,6 +766,7 @@ web/                       # interfaz (HTML + CSS + JS) servida por Flask
   recursos/js/panel/       # app.js (sesión y rutas), ui.js (componentes) y una sección por archivo
   recursos/img/            # favicon e ilustraciones de las prendas de ejemplo
   recursos/vendor/         # qrcode-generator (MIT)
+  recursos/fuentes/        # Archivo en woff2 (SIL OFL)
 legacy/prototipo/          # primer prototipo (SQLite + frontends HTML), ya no se usa
 ```
 

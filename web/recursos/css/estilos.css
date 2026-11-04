@@ -11,9 +11,27 @@
   --papel: #EDF0F5;
   --algodon: #FFFFFF;
   --sol: #F2B200;
-  --verde: #2F7D5B;
+  --verde: #2A7051;            /* 5,2:1 sobre papel */
   --rojo: #B3261E;
-  --linea: #C9D0DD;
+  --linea: #C9D0DD;            /* líneas decorativas y separadores */
+  --borde-control: #7A859E;    /* borde de campos: 3,7:1 sobre blanco (WCAG 1.4.11) */
+  --indigo-claro: #2E3D66;     /* superficies sobre índigo: botón buscar, selector */
+  --indigo-borde: #4A5A85;
+  --indigo-hover: #2B3A62;
+  --indigo-linea: #34436B;
+  --sobre-indigo: #D5DBEA;     /* texto secundario sobre índigo */
+  --sobre-indigo-suave: #9AA6C4;
+  --azul: #3E5A8C;
+  --linea-suave: #E3E7EF;
+  --fondo-hover: #F5F7FB;
+  --fondo-apagado: #F7F8FA;
+  --sombra: rgba(30, 42, 74, 0.25);
+  --velo: rgba(30, 42, 74, 0.45);
+  --insignia-sol-fondo: #FFF3CC; --insignia-sol-texto: #6B4E00; --insignia-sol-borde: #F2D27A;
+  --insignia-verde-fondo: #E2F2EA; --insignia-verde-texto: #1F5A40;
+  --insignia-azul-fondo: #E3E9F6; --insignia-azul-texto: #273C6B;
+  --insignia-rojo-fondo: #FBE5E3; --insignia-rojo-texto: #8C1D16;
+  --insignia-gris-fondo: #ECEEF2; --insignia-gris-texto: #49526A;
 
   --t-xs: 0.8125rem;   /* 13 */
   --t-s: 0.875rem;     /* 14 */
@@ -28,8 +46,21 @@
   --foco: 0 0 0 3px var(--algodon), 0 0 0 6px var(--indigo);
 }
 
+/* Archivo (SIL Open Font License, ver recursos/fuentes/OFL.txt), incluida en el
+   proyecto para que la interfaz funcione sin internet. Subconjunto latino, con
+   los ejes de ancho (62–125 %) y peso (400–900). */
+@font-face {
+  font-family: "Archivo";
+  src: url("/recursos/fuentes/archivo-latin.woff2") format("woff2");
+  font-weight: 400 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
+[aria-invalid="true"] { border-color: var(--rojo) !important; box-shadow: inset 0 0 0 1px var(--rojo); }
 
 html { -webkit-text-size-adjust: 100%; }
 
@@ -91,15 +122,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border: 0;
   border-radius: 0 var(--radio) var(--radio) 0;
   padding: 0 1rem;
-  background: #2E3D66;
+  background: var(--indigo-claro);
   color: var(--algodon);
   cursor: pointer;
 }
 .selector-sede { display: flex; align-items: center; gap: 0.5rem; font-size: var(--t-s); }
 .selector-sede select {
-  border: 1px solid #4A5A85;
+  border: 1px solid var(--indigo-borde);
   border-radius: var(--radio);
-  background: #2E3D66;
+  background: var(--indigo-claro);
   color: var(--algodon);
   padding: 0.45rem 0.6rem;
 }
@@ -215,7 +246,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .migas { font-size: var(--t-s); margin: 0 0 1.25rem; color: var(--indigo-suave); }
 .migas a { color: var(--indigo); }
 
-.detalle { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3rem; align-items: start; }
+.detalle {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "foto cabeza" "foto info"; grid-template-rows: auto 1fr;
+  gap: 0 3rem; align-items: start;
+}
+.detalle__cabeza { grid-area: cabeza; }
+.detalle__foto { grid-area: foto; }
+.detalle__info { grid-area: info; }
+.filtros__abrir { display: none; }
 .detalle__foto {
   aspect-ratio: 4 / 5;
   background: var(--algodon);
@@ -248,7 +287,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .colgante::before {
   content: ""; width: 0.6rem; height: 0.6rem; border-radius: 50%;
-  background: var(--papel); box-shadow: inset 0 0 0 2px rgba(30, 42, 74, 0.35);
+  background: var(--papel); box-shadow: inset 0 0 0 2px var(--sombra);
 }
 
 .opciones { border: 0; padding: 0; margin: 0 0 1.25rem; }
@@ -259,7 +298,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   display: inline-flex; align-items: center; gap: 0.45rem;
   min-width: 2.75rem; justify-content: center;
   padding: 0.45rem 0.8rem;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--borde-control);
   border-radius: var(--radio);
   background: var(--algodon);
   cursor: pointer; font-weight: 600;
@@ -342,7 +381,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .util { margin-top: 0.6rem; background: none; border: 0; padding: 0.2rem 0; font-size: var(--t-xs); text-decoration: underline; cursor: pointer; color: var(--indigo-suave); }
 
 .controles-resenas { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-.controles-resenas select { border: 1px solid var(--linea); border-radius: var(--radio); background: var(--algodon); padding: 0.4rem 0.5rem; }
+.controles-resenas select { border: 1px solid var(--borde-control); border-radius: var(--radio); background: var(--algodon); padding: 0.4rem 0.5rem; }
 
 /* Formulario de reseña */
 .formulario {
@@ -355,7 +394,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .campo--ancho { grid-column: 1 / -1; }
 .campo label, .campo legend { font-weight: 650; }
 .campo input, .campo select, .campo textarea {
-  border: 1px solid var(--linea); border-radius: var(--radio);
+  border: 1px solid var(--borde-control); border-radius: var(--radio);
   padding: 0.55rem 0.65rem; background: var(--algodon);
 }
 .campo textarea { min-height: 7rem; resize: vertical; }
@@ -366,7 +405,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .selector-estrellas input { position: absolute; opacity: 0; }
 .selector-estrellas span {
   display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem;
-  border: 1.5px solid var(--linea); border-radius: var(--radio); font-weight: 700;
+  border: 1.5px solid var(--borde-control); border-radius: var(--radio); font-weight: 700;
 }
 .selector-estrellas input:checked + span { background: var(--indigo); color: var(--algodon); border-color: var(--indigo); }
 .selector-estrellas input:focus-visible + span { box-shadow: var(--foco); }
@@ -402,7 +441,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .compra__fila { display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap; margin-top: 1rem; }
 .compra__cantidad { display: flex; flex-direction: column; gap: 0.25rem; font-size: var(--t-s); font-weight: 650; }
 .compra__cantidad input {
-  width: 5rem; padding: 0.55rem 0.6rem; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--algodon);
+  width: 5rem; padding: 0.55rem 0.6rem; border: 1px solid var(--borde-control); border-radius: var(--radio); background: var(--algodon);
 }
 .boton--compra { background: var(--indigo); border-color: var(--indigo); }
 .boton--ancho { width: 100%; margin-top: 1rem; padding: 0.85rem; font-size: var(--t-m); }
@@ -420,7 +459,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .linea__datos p { margin: 0.1rem 0 0; font-size: var(--t-s); color: var(--indigo-suave); }
 .linea__nombre { font-weight: 700; text-decoration: none; }
 .linea__nombre:hover { text-decoration: underline; }
-.linea__cantidad input { width: 4.25rem; padding: 0.45rem; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--algodon); }
+.linea__cantidad input { width: 4.25rem; padding: 0.45rem; border: 1px solid var(--borde-control); border-radius: var(--radio); background: var(--algodon); }
 .linea__total { margin: 0; font-weight: 700; min-width: 6.5rem; text-align: right; }
 .linea__quitar { background: none; border: 0; text-decoration: underline; cursor: pointer; font-size: var(--t-s); color: var(--indigo-suave); padding: 0.25rem; }
 .lineas--compactas .linea--compacta { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; font-size: var(--t-s); grid-template-columns: none; }
@@ -429,7 +468,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .formulario--pago h2 { font-stretch: 125%; font-weight: 750; font-size: var(--t-l); margin: 0 0 1rem; }
 .formulario--pago .opciones { margin-top: 1.25rem; }
-.campo select { border: 1px solid var(--linea); border-radius: var(--radio); padding: 0.55rem 0.65rem; background: var(--algodon); }
+.campo select { border: 1px solid var(--borde-control); border-radius: var(--radio); padding: 0.55rem 0.65rem; background: var(--algodon); }
 .campos[hidden] { display: none; }
 #zona-envio { margin-top: 0.5rem; }
 .casilla { display: flex; gap: 0.5rem; align-items: center; font-size: var(--t-s); margin-top: 0.75rem; }
@@ -465,12 +504,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .escaner__camara video[hidden] { display: none; }
 .escaner__marco {
   position: absolute; inset: 18%; border: 3px solid var(--sol); border-radius: 10px; pointer-events: none;
-  box-shadow: 0 0 0 999px rgba(30, 42, 74, 0.25);
+  box-shadow: 0 0 0 999px var(--sombra);
 }
 .escaner__camara .boton { position: relative; background: var(--sol); color: var(--indigo); border-color: var(--sol); }
-.escaner__camara .nota-compra { position: relative; color: #D5DBEA; max-width: 22ch; }
+.escaner__camara .nota-compra { position: relative; color: var(--sobre-indigo); max-width: 22ch; }
 .escaner__manual label { display: block; font-weight: 650; margin-bottom: 0.5rem; }
-.buscador--claro input { border: 1px solid var(--linea); border-right: 0; }
+.buscador--claro input { border: 1px solid var(--borde-control); border-right: 0; }
 .buscador--claro button { background: var(--indigo); }
 
 .ficha-qr { display: grid; grid-template-columns: 12rem 1fr; gap: 2rem; background: var(--algodon); border: 1px solid var(--linea); border-radius: 6px; padding: 1.5rem; }
@@ -492,17 +531,28 @@ button, input, select, textarea { font: inherit; color: inherit; }
    Pantallas pequeñas
    --------------------------------------------------------------------- */
 @media (max-width: 52rem) {
-  .catalogo, .detalle, .debajo { grid-template-columns: 1fr; gap: 2rem; }
-  .filtros { display: flex; flex-wrap: wrap; gap: 0 2rem; }
+  .catalogo, .debajo { grid-template-columns: 1fr; gap: 2rem; }
+  .detalle { grid-template-columns: 1fr; grid-template-areas: "cabeza" "foto" "info"; gap: 1.25rem; }
+  .detalle__foto { aspect-ratio: auto; height: min(22rem, 70vw); }
+  .detalle__foto img { object-fit: contain; }
+  .detalle__descripcion { margin-bottom: 0; }
+  /* Filtros plegados detrás del botón "Filtrar" para que las prendas se vean primero */
+  .filtros__abrir { display: inline-flex; }
+  .filtros__cuerpo { display: none; flex-wrap: wrap; gap: 0 2rem; margin-top: 1rem; }
+  .filtros--abierto .filtros__cuerpo { display: flex; }
   .filtros fieldset { margin-bottom: 1rem; }
   .filtros__opciones { display: flex; flex-wrap: wrap; gap: 0 1rem; }
   .debajo .etiqueta { max-width: 22rem; }
-}
-@media (max-width: 52rem) {
   .pago, .escaner { grid-template-columns: 1fr; }
-  .nav-tienda { margin-left: auto; }
 }
 @media (max-width: 40rem) {
+  /* Cabecera en dos filas: marca, sede y enlaces arriba; buscador abajo */
+  .cabecera__interior { gap: 0.6rem 1rem; padding: 0.75rem 1rem; }
+  .marca { order: 1; font-size: var(--t-l); }
+  .selector-sede { order: 2; margin-left: auto; }
+  .selector-sede label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .nav-tienda { order: 3; gap: 0.9rem; }
+  .buscador { order: 4; flex-basis: 100%; }
   .linea { grid-template-columns: 4rem 1fr auto; }
   .linea__cantidad { grid-column: 2; }
   .linea__total { grid-column: 3; grid-row: 1; }
@@ -517,6 +567,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .titulo-pagina, .detalle__nombre { font-size: var(--t-xl); }
 }
 
+/* Movimiento reducido: sin desplazamientos ni animaciones, pero se conservan los
+   cambios de opacidad para que se note qué aparece y qué desaparece. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; animation: none !important; }
+  *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
 }

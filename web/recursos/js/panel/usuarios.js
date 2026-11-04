@@ -1,5 +1,5 @@
 // Usuarios del personal (administración): crear, activar o desactivar el acceso.
-import { el, sinPrefijo } from "../comun.js";
+import { el, marcarInvalidos, sinPrefijo } from "../comun.js";
 import { aviso, campo, confirmar, encabezado, errorEn, insignia, opcionesSedes, papi, selector, tabla } from "./ui.js";
 
 export async function render(principal, ctx) {
@@ -39,7 +39,12 @@ export async function render(principal, ctx) {
     const f = Object.fromEntries(new FormData(form));
     const cuerpo = { nombres: f.nombres.trim(), apellidos: f.apellidos.trim(), documento: f.documento.trim(), email: f.email.trim(), password: f.password, rol: f.rol };
     if (f.rol === "TRABAJADOR") cuerpo.id_sede = Number(f.id_sede);
-    if (Object.values(cuerpo).some((v) => v === "")) { errorEn(errorForm, new Error("Completa todos los campos.")); return; }
+    const vacios = Object.keys(cuerpo).filter((k) => cuerpo[k] === "");
+    if (vacios.length) {
+      errorEn(errorForm, new Error("Completa todos los campos."));
+      marcarInvalidos(form, vacios);
+      return;
+    }
     try {
       await papi("/usuarios", { metodo: "POST", cuerpo });
       aviso("Usuario creado. Entrégale su correo y contraseña inicial.");

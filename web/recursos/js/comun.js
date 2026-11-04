@@ -86,6 +86,19 @@ export function qr(texto, { tamano = 4 } = {}) {
   return caja;
 }
 
+// Marca los campos con error para lectores de pantalla y lleva el cursor al primero.
+// La marca se quita sola cuando la persona corrige el campo.
+export function marcarInvalidos(form, nombres) {
+  for (const campo of form.querySelectorAll('[aria-invalid="true"]')) campo.removeAttribute("aria-invalid");
+  const campos = nombres.map((n) => form.elements[n]).filter(Boolean)
+    .map((c) => (c instanceof RadioNodeList ? c[0] : c));
+  for (const campo of campos) {
+    campo.setAttribute("aria-invalid", "true");
+    campo.addEventListener("input", () => campo.removeAttribute("aria-invalid"), { once: true });
+  }
+  campos[0]?.focus();
+}
+
 export function mostrarError(contenedor, error, reintentar) {
   contenedor.replaceChildren(el("div", { class: "aviso aviso--error", role: "alert" },
     el("p", {}, error.message),

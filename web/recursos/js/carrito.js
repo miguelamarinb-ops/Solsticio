@@ -2,7 +2,7 @@
 // POST /pedidos con canal WEB y luego POST /pedidos/{id}/pagos con la pasarela
 // simulada. Si el pago se aprueba la API emite la factura sola.
 import {
-  api, carrito, el, foto, iniciarCabecera, listaConflictos, mostrarError, precio, qr,
+  api, carrito, el, foto, iniciarCabecera, marcarInvalidos, mostrarError, precio, qr,
 } from "./comun.js";
 
 const raiz = document.getElementById("carrito");
@@ -87,10 +87,10 @@ function formularioPago(error) {
           el("option", { value: "PASAPORTE" }, "Pasaporte"), el("option", { value: "NIT" }, "NIT"))),
       campo("Número de documento", { id: "cli-numero", name: "numero_documento", maxlength: 20, required: true, inputmode: "numeric" }),
       campo("Nombres", { id: "cli-nombres", name: "nombres", maxlength: 80, required: true, autocomplete: "given-name" }),
-      campo("Apellidos", { id: "cli-apellidos", name: "apellidos", maxlength: 80, autocomplete: "family-name" }),
+      campo("Apellidos (opcional)", { id: "cli-apellidos", name: "apellidos", maxlength: 80, autocomplete: "family-name" }),
       campo("Correo", { id: "cli-email", name: "email", type: "email", maxlength: 120, required: true, autocomplete: "email" },
         "Te enviamos aquí la factura electrónica."),
-      campo("Celular", { id: "cli-telefono", name: "telefono", type: "tel", maxlength: 20, autocomplete: "tel" }),
+      campo("Celular (opcional)", { id: "cli-telefono", name: "telefono", type: "tel", maxlength: 20, autocomplete: "tel" }),
     ),
     el("fieldset", { class: "opciones" },
       el("legend", {}, "Entrega"),
@@ -119,14 +119,15 @@ function formularioPago(error) {
   return form;
 }
 
+// Devuelve [nombre del campo, texto para el mensaje] de cada dato que falta.
 function validar(datos) {
   const faltan = [];
-  if (!datos.numero_documento?.trim()) faltan.push("el número de documento");
-  if (!datos.nombres?.trim()) faltan.push("tus nombres");
-  if (!datos.email?.includes("@")) faltan.push("un correo válido");
+  if (!datos.numero_documento?.trim()) faltan.push(["numero_documento", "el número de documento"]);
+  if (!datos.nombres?.trim()) faltan.push(["nombres", "tus nombres"]);
+  if (!datos.email?.includes("@")) faltan.push(["email", "un correo válido"]);
   if (datos.tipo_entrega === "DOMICILIO") {
     for (const [clave, texto] of [["direccion", "la dirección"], ["ciudad", "la ciudad"], ["destinatario", "quién recibe"], ["telefono_contacto", "el teléfono de contacto"]]) {
-      if (!datos[clave]?.trim()) faltan.push(texto);
+      if (!datos[clave]?.trim()) faltan.push([clave, texto]);
     }
   }
   return faltan;
@@ -137,7 +138,8 @@ async function pagar(evento, form, mensaje) {
   const datos = Object.fromEntries(new FormData(form));
   const faltan = validar(datos);
   if (faltan.length) {
-    mensaje.replaceChildren(el("div", { class: "aviso aviso--error" }, el("p", {}, `Falta ${faltan.join(", ")}.`)));
+    mensaje.replaceChildren(el("div", { class: "aviso aviso--error" }, el("p", {}, `Falta ${faltan.map(([, t]) => t).join(", ")}.`)));
+    marcarInvalidos(form, faltan.map(([n]) => n));
     return;
   }
   const boton = form.querySelector('button[type="submit"]');

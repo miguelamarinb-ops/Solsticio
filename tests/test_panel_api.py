@@ -81,3 +81,7 @@ def test_paginas_nuevas_de_la_interfaz(client):
         assert "text/html" in respuesta.content_type
     assert client.get("/recursos/js/panel/app.js").status_code == 200
     assert client.get("/recursos/vendor/qrcode.min.js").status_code == 200
+    # La tipografía va incluida: la interfaz no depende de Google Fonts.
+    assert client.get("/recursos/fuentes/archivo-latin.woff2").status_code == 200
+    for ruta in ("/", "/producto", "/escanear", "/carrito", "/panel"):
+        assert b"fonts.googleapis.com" not in client.get(ruta).data, ruta

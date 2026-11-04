@@ -1,6 +1,8 @@
 // Detalle de una prenda. Usa /productos/{id}/completo, que junta MySQL (precio,
 // variantes, stock por sede) y MongoDB (ficha técnica, opiniones, escaneos).
-import { api, carrito, el, estrellas, fecha, foto, iniciarCabecera, mostrarError, precio } from "./comun.js";
+import {
+  api, carrito, el, estrellas, fecha, foto, iniciarCabecera, marcarInvalidos, mostrarError, precio,
+} from "./comun.js";
 import { etiqueta, nombreAtributo } from "./etiqueta.js";
 
 const contenedor = document.getElementById("producto");
@@ -248,13 +250,14 @@ function formularioOpinion() {
     evento.preventDefault();
     const datos = Object.fromEntries(new FormData(form));
     const faltan = [];
-    if (!datos.nombre?.trim()) faltan.push("tu nombre");
-    if (!datos.email?.includes("@")) faltan.push("un correo válido");
-    if (!datos.calificacion) faltan.push("la calificación");
-    if (!datos.comentario?.trim()) faltan.push("tu opinión");
+    if (!datos.nombre?.trim()) faltan.push(["nombre", "tu nombre"]);
+    if (!datos.email?.includes("@")) faltan.push(["email", "un correo válido"]);
+    if (!datos.calificacion) faltan.push(["calificacion", "la calificación"]);
+    if (!datos.comentario?.trim()) faltan.push(["comentario", "tu opinión"]);
     if (faltan.length) {
       mensaje.className = "mensaje-formulario texto-no";
-      mensaje.textContent = `Falta ${faltan.join(", ")}.`;
+      mensaje.textContent = `Falta ${faltan.map(([, t]) => t).join(", ")}.`;
+      marcarInvalidos(form, faltan.map(([n]) => n));
       return;
     }
     const cuerpo = { ...datos, calificacion: Number(datos.calificacion) };
@@ -316,12 +319,15 @@ function pintar(datos) {
   const principal = datos.imagenes.find((i) => i.es_principal) || datos.imagenes[0];
 
   contenedor.replaceChildren(
+    // Tres zonas: en pantalla ancha la foto va a la izquierda; en celular el nombre
+    // queda arriba de la foto para que se vea qué prenda es sin bajar.
     el("article", { class: "detalle" },
-      el("div", { class: "detalle__foto" }, foto(principal?.url, datos.nombre)),
-      el("div", {},
+      el("div", { class: "detalle__cabeza" },
         el("p", { class: "detalle__categoria" }, datos.categoria.nombre),
         el("h1", { class: "detalle__nombre" }, datos.nombre),
-        datos.descripcion ? el("p", { class: "detalle__descripcion" }, datos.descripcion) : null,
+        datos.descripcion ? el("p", { class: "detalle__descripcion" }, datos.descripcion) : null),
+      el("div", { class: "detalle__foto" }, foto(principal?.url, datos.nombre, { lazy: false })),
+      el("div", { class: "detalle__info" },
         datos.variantes.length
           ? el("div", { id: "zona-compra" })
           : el("div", { class: "aviso" }, el("p", {}, "Esta prenda todavía no tiene tallas a la venta.")))),

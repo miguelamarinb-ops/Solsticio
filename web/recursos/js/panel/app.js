@@ -1,6 +1,6 @@
 // Panel del personal: inicio de sesión, menú según el rol y enrutador por hash
 // (#/pedidos/12). Cada sección es un módulo que exporta render(principal, ctx, params).
-import { api, el, sinPrefijo } from "../comun.js";
+import { api, el, marcarInvalidos, sinPrefijo } from "../comun.js";
 import { aviso, configurarExpiracion, papi, sesion } from "./ui.js";
 
 const raiz = document.getElementById("app");
@@ -73,7 +73,11 @@ function pantallaLogin(mensaje) {
   form.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     const datos = Object.fromEntries(new FormData(form));
-    if (!datos.email || !datos.password) { error.textContent = "Escribe tu correo y tu contraseña."; return; }
+    if (!datos.email || !datos.password) {
+      error.textContent = "Escribe tu correo y tu contraseña.";
+      marcarInvalidos(form, ["email", "password"].filter((k) => !datos[k]));
+      return;
+    }
     const boton = form.querySelector("button");
     boton.disabled = true;
     try {
@@ -120,11 +124,20 @@ function estructura() {
         el("button", { type: "button", onclick: cerrarSesion }, "Cerrar sesión"))));
 
   const botonMenu = el("button", { class: "menu__abrir", type: "button", "aria-controls": "menu", "aria-expanded": "false" }, "Menú");
+  // Menú del celular: el foco entra al abrir, Escape lo cierra y el foco vuelve al botón.
+  const cerrarMenu = (devolverFoco) => {
+    if (!menu.classList.contains("menu--abierto")) return;
+    menu.classList.remove("menu--abierto");
+    botonMenu.setAttribute("aria-expanded", "false");
+    if (devolverFoco) botonMenu.focus();
+  };
   botonMenu.addEventListener("click", () => {
     const abierto = menu.classList.toggle("menu--abierto");
     botonMenu.setAttribute("aria-expanded", String(abierto));
+    if (abierto) menu.querySelector(".menu__grupo a")?.focus();
   });
-  menu.addEventListener("click", (e) => { if (e.target.closest("a")) { menu.classList.remove("menu--abierto"); botonMenu.setAttribute("aria-expanded", "false"); } });
+  menu.addEventListener("click", (e) => { if (e.target.closest("a")) cerrarMenu(false); });
+  menu.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenu(true); });
 
   raiz.replaceChildren(el("div", { class: "panel" },
     el("div", { class: "panel__barra" }, el("a", { class: "marca", href: "#/" }, "SOLSTICIO"), botonMenu),

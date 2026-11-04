@@ -50,6 +50,7 @@ function tarjeta(producto) {
 
 function pintar() {
   const { q, disponibles } = filtros();
+  contarFiltros();
   titulo.textContent = `Lo que hay hoy en ${cabecera.nombreSede()}`;
   busquedaActiva.replaceChildren(q
     ? el("span", {}, `Buscando "${q}". `, el("a", { href: "/" }, "Ver todo el catálogo"))
@@ -105,6 +106,19 @@ async function cargarCategorias() {
     el("input", { type: "radio", name: "categoria", value: c.id_categoria, checked: String(c.id_categoria) === actual }),
     " ", c.nombre)));
 }
+
+// En celular los filtros van plegados; el botón dice cuántos hay activos.
+const botonFiltros = document.getElementById("boton-filtros");
+const aside = document.querySelector(".filtros");
+function contarFiltros() {
+  const { categoria, genero, disponibles } = filtros();
+  const n = [categoria, genero, disponibles].filter(Boolean).length;
+  botonFiltros.textContent = n ? `Filtrar (${n} ${n === 1 ? "activo" : "activos"})` : "Filtrar";
+}
+botonFiltros.addEventListener("click", () => {
+  const abierto = aside.classList.toggle("filtros--abierto");
+  botonFiltros.setAttribute("aria-expanded", String(abierto));
+});
 
 function marcarFiltrosDesdeUrl() {
   const { genero, categoria, disponibles } = filtros();

@@ -6,9 +6,7 @@
   <title>Catálogo | Solsticio</title>
   <meta name="description" content="Catálogo de Solsticio: mira qué prendas hay en tu sede de Bogotá y en qué tallas.">
   <link rel="icon" href="/recursos/img/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+  <link rel="preload" href="/recursos/fuentes/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/recursos/css/estilos.css">
   <script type="module" src="/recursos/js/catalogo.js"></script>
 </head>
@@ -19,6 +17,8 @@
   <main class="contenedor" id="contenido">
     <div class="catalogo">
       <aside class="filtros" aria-label="Filtros">
+        <button class="filtros__abrir boton boton--secundario" type="button" id="boton-filtros" aria-expanded="false" aria-controls="cuerpo-filtros">Filtrar</button>
+        <div class="filtros__cuerpo" id="cuerpo-filtros">
         <fieldset>
           <legend>Disponibilidad</legend>
           <div class="filtros__opciones">
@@ -41,6 +41,7 @@
             <label><input type="radio" name="genero" value="INFANTIL"> Niños</label>
           </div>
         </fieldset>
+        </div>
       </aside>
 
       <section aria-labelledby="titulo-catalogo">

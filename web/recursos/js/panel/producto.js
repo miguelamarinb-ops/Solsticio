@@ -1,6 +1,6 @@
 // Una prenda (administración): datos (MySQL), variantes talla × color (MySQL),
 // ficha técnica con atributos libres (MongoDB) y etiquetas QR para imprimir.
-import { el, foto, precio, qr } from "../comun.js";
+import { el, foto, marcarInvalidos, precio, qr } from "../comun.js";
 import { etiqueta } from "../etiqueta.js";
 import {
   aviso, campo, confirmar, encabezado, errorEn, papi, pestanas, selector, tabla,
@@ -75,7 +75,11 @@ function formularioDatos(ctx, categorias, producto) {
   async function guardar(reactivar = false) {
     zonaError.replaceChildren();
     const datos = leer();
-    if (!datos.nombre || !datos.precio_base) { errorEn(zonaError, new Error("Escribe el nombre y el precio.")); return; }
+    if (!datos.nombre || !datos.precio_base) {
+      errorEn(zonaError, new Error("Escribe el nombre y el precio."));
+      marcarInvalidos(form, ["nombre", "precio_base"].filter((k) => !datos[k]));
+      return;
+    }
     try {
       if (producto) {
         await papi(`/productos/${producto.id_producto}`, { metodo: "PUT", cuerpo: reactivar ? { ...datos, activo: true } : datos });

@@ -196,14 +196,35 @@ export function buscadorVariantes({ alElegir, sede = () => null, textoBoton = "A
         resultados.replaceChildren(el("div", { class: "variantes-de" }, el("p", {}, producto.nombre), botonVariante(variante, producto)));
         return;
       }
-      const lista = await papi(`/productos?q=${encodeURIComponent(texto)}&size=8`);
+      // Una sola petición para la lista; las tallas de cada prenda se piden al abrirla.
+      const parametros = new URLSearchParams({ q: texto, size: 8 });
+      if (sede()) parametros.set("sede", sede());
+      const lista = await papi(`/productos?${parametros}`);
       if (!lista.items.length) { resultados.replaceChildren(el("p", { class: "nota" }, "No hay prendas con ese nombre.")); return; }
-      const detalles = await Promise.all(lista.items.map((p) => papi(`/productos/${p.id_producto}`)));
-      resultados.replaceChildren(...detalles.map((producto) => el("div", { class: "variantes-de" },
-        el("p", {}, producto.nombre),
-        producto.variantes.length
-          ? el("div", { class: "variantes-de__lista" }, producto.variantes.map((v) => botonVariante(v, producto)))
-          : el("p", { class: "nota" }, "Sin variantes."))));
+      resultados.replaceChildren(...lista.items.map((resumen) => {
+        const cuerpo = el("div", { class: "variantes-de__lista" });
+        const plegable = el("details", { class: "variantes-de", open: lista.items.length === 1 },
+          el("summary", {}, el("strong", {}, resumen.nombre),
+            el("span", { class: "nota" }, ` ${precio(resumen.precio_base)}${sede() ? `, ${resumen.stock_total} en sede` : ""}`)),
+          cuerpo);
+        const cargar = async () => {
+          if (cuerpo.dataset.cargado) return;
+          cuerpo.dataset.cargado = "1";
+          cuerpo.replaceChildren(cargando("Cargando tallas…"));
+          try {
+            const producto = await papi(`/productos/${resumen.id_producto}`);
+            cuerpo.replaceChildren(...(producto.variantes.length
+              ? producto.variantes.map((v) => botonVariante(v, producto))
+              : [el("p", { class: "nota" }, "Sin tallas ni colores.")]));
+          } catch (error) {
+            delete cuerpo.dataset.cargado;
+            cuerpo.replaceChildren(el("p", { class: "texto-no" }, error.message));
+          }
+        };
+        plegable.addEventListener("toggle", () => { if (plegable.open) cargar(); });
+        if (plegable.open) cargar();
+        return plegable;
+      }));
     } catch (error) {
       resultados.replaceChildren(el("p", { class: "texto-no" }, error.estado === 404 ? "Ese código no corresponde a ninguna prenda." : error.message));
     }
