@@ -52,7 +52,7 @@ def crear_app(configuracion=Config):
     registrar_errores(app)
     registrar_comandos(app)
 
-    @app.get("/")
+    @app.get(PREFIJO_API)
     def inicio():
         return jsonify({"api": "Solsticio", "version": "v1", "base": PREFIJO_API})
 

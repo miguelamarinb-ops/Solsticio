@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo | Solsticio</title>
+  <meta name="description" content="Catálogo de Solsticio: mira qué prendas hay en tu sede de Bogotá y en qué tallas.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/recursos/css/estilos.css">
+  <script type="module" src="/recursos/js/catalogo.js"></script>
+</head>
+<body>
+  <header class="cabecera">
+    <div class="cabecera__interior">
+      <a class="marca" href="/">SOLSTICIO</a>
+      <form class="buscador" role="search" id="form-busqueda">
+        <label class="solo-lector" for="q">Buscar prendas</label>
+        <input id="q" name="q" type="search" placeholder="Buscar prendas" autocomplete="off">
+        <button type="submit">Buscar</button>
+      </form>
+      <div class="selector-sede">
+        <label for="sede">Tu sede</label>
+        <select id="sede"><option>Cargando…</option></select>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="catalogo">
+      <aside class="filtros" aria-label="Filtros">
+        <fieldset>
+          <legend>Categoría</legend>
+          <div class="filtros__opciones" id="filtro-categoria">
+            <label><input type="radio" name="categoria" value="" checked> Todas</label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Para</legend>
+          <div class="filtros__opciones" id="filtro-genero">
+            <label><input type="radio" name="genero" value="" checked> Todos</label>
+            <label><input type="radio" name="genero" value="MUJER"> Mujer</label>
+            <label><input type="radio" name="genero" value="HOMBRE"> Hombre</label>
+            <label><input type="radio" name="genero" value="UNISEX"> Unisex</label>
+            <label><input type="radio" name="genero" value="INFANTIL"> Niños</label>
+          </div>
+        </fieldset>
+      </aside>
+
+      <section aria-labelledby="titulo-catalogo">
+        <h1 class="titulo-pagina" id="titulo-catalogo">Catálogo</h1>
+        <p class="subtitulo">Elige tu sede arriba y te mostramos qué hay para recoger hoy y en qué tallas.</p>
+        <div class="resultado-cabecera">
+          <p id="conteo" aria-live="polite"></p>
+        </div>
+        <div id="resultados"><p class="cargando">Cargando prendas…</p></div>
+        <div class="mas" id="zona-mas"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <p>Solsticio, tiendas en Chapinero, Centro y Suba (Bogotá)</p>
+  </footer>
+</body>
+</html>

@@ -70,6 +70,12 @@ def listar_productos():
 
     resultado = db.paginate(consulta, page=pagina, per_page=tamano, error_out=False)
     sedes = sedes_activas()
+    # ?sede=N: stock_total y tallas_disponibles cuentan solo esa sede (la tienda muestra "hay en tu sede").
+    id_sede = arg_entero("sede", minimo=1)
+    if id_sede:
+        sedes = [s for s in sedes if s.id_sede == id_sede]
+        if not sedes:
+            raise ErrorApi(404, "La sede no existe o está inactiva")
     return jsonify({
         "total": resultado.total,
         "page": pagina,
