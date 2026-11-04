@@ -14,3 +14,6 @@ __pycache__/
 # Bases de datos locales
 instance/
 *.db
+
+# Pruebas
+.pytest_cache/

@@ -15,6 +15,7 @@ Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los da
 - [Uso diario](#uso-diario)
 - [Problemas frecuentes](#problemas-frecuentes)
 - [Pruebas con Postman](#pruebas-con-postman)
+- [Pruebas automáticas (pytest)](#pruebas-automáticas-pytest)
 - [Evidencias de pruebas](#evidencias-de-pruebas)
 - [Integración NoSQL (MongoDB)](#integración-nosql-mongodb)
 - [Endpoints](#endpoints)
@@ -337,6 +338,30 @@ $env:SOLSTICIO_EMAIL = "tu@correo.com"; $env:SOLSTICIO_PASSWORD = "tu-clave"
 python scripts/flujo_demo_nosql.py
 ```
 
+## Pruebas automáticas (pytest)
+
+37 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar encendidos. Si alguno no responde, las pruebas se marcan como omitidas (`skipped`) en vez de fallar.
+
+| Archivo | Qué comprueba |
+|---|---|
+| `test_fichas.py` | CRUD de fichas técnicas, versión, atributos distintos por prenda, bloqueo de claves `$`/`.`, búsqueda por atributos sin tildes con stock de MySQL |
+| `test_resenas.py` | CRUD de reseñas, compra verificada contra MySQL, una reseña por email, validaciones, resumen con `$facet`, moderación y permisos |
+| `test_combinados.py` | Perfil (MySQL) + últimas 10 actividades (MongoDB), bitácora con errores y parámetros, escaneos QR, ranking de QR con stock, producto completo |
+| `test_degradacion.py` | Con MongoDB caído la API arranca, MySQL sigue respondiendo, `/completo` devuelve `nosql_disponible: false` y los endpoints NoSQL responden 503 |
+
+Resultado esperado:
+
+```
+37 passed
+```
+
 ## Evidencias de pruebas
 
 Capturas de la colección ejecutada en Postman contra la API en local. Las imágenes están en `docs/imagenes/`.
@@ -639,6 +664,8 @@ Capturas generadas al ejecutar `scripts/flujo_demo_nosql.py` contra la API en lo
 ```
 app.py                     # punto de entrada: python app.py / gunicorn app:app
 requirements.txt
+requirements-dev.txt       # dependencias de desarrollo (pytest)
+pytest.ini
 .env.example               # plantilla de variables de entorno (.env no se versiona)
 api/
   __init__.py              # crear_app(): configuración, base de datos, rutas, errores
@@ -668,6 +695,8 @@ postman/
   Solsticio.postman_collection.json
 scripts/
   flujo_demo_nosql.py      # recorre todos los endpoints NoSQL y combinados
+tests/                     # pruebas automáticas con pytest (MySQL + MongoDB reales)
+  conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py
 legacy/prototipo/          # primer prototipo (SQLite + frontends HTML), ya no se usa
 ```
 
