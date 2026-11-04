@@ -259,7 +259,17 @@ Conexión correcta a MongoDB 7.0.x, base 'solsticio'.
 flask --app app crear-admin
 ```
 
-El comando pide email, documento, nombres, apellidos y contraseña (dos veces). Con ese email y contraseña se inicia sesión en Postman.
+El comando pide email, documento, nombres, apellidos y contraseña (dos veces). Con ese email y contraseña se inicia sesión en Postman y en el [panel del personal](#panel-del-personal-panel).
+
+### 6.1 Cargar el catálogo de ejemplo (opcional)
+
+Para ver la tienda con prendas, existencias, fichas técnicas y opiniones:
+
+```bash
+flask --app app sembrar-demo
+```
+
+Crea 6 categorías y 12 prendas con ilustración, sus tallas y colores, existencias repartidas en las sedes (cada una con su movimiento de ingreso), fichas técnicas y opiniones en MongoDB. Se puede ejecutar varias veces: no duplica nada.
 
 ### 7. Levantar el servidor
 
@@ -341,7 +351,7 @@ python scripts/flujo_demo_nosql.py
 
 ## Pruebas automáticas (pytest)
 
-42 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
+47 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -357,11 +367,12 @@ No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar e
 | `test_combinados.py` | Perfil (MySQL) + últimas 10 actividades (MongoDB), bitácora con errores y parámetros, escaneos QR, ranking de QR con stock, producto completo |
 | `test_degradacion.py` | Con MongoDB caído la API arranca, MySQL sigue respondiendo, `/completo` devuelve `nosql_disponible: false` y los endpoints NoSQL responden 503 |
 | `test_web.py` | La tienda se sirve en `/`, sus CSS y JS cargan, y `/productos?sede=` cuenta el stock de una sola sede |
+| `test_panel_api.py` | Listados para el panel (traslados, usuarios, opiniones para moderar, prendas desactivadas), activar y desactivar usuarios, y las páginas `/escanear`, `/carrito` y `/panel` |
 
 Resultado esperado:
 
 ```
-42 passed
+47 passed
 ```
 
 ## Evidencias de pruebas
@@ -608,19 +619,45 @@ Capturas generadas al ejecutar `scripts/flujo_demo_nosql.py` contra la API en lo
 
 ## Tienda web
 
-La carpeta `web/` tiene la tienda para el cliente: páginas HTML, CSS y JavaScript que Flask sirve tal cual y que consumen `/api/v1` con `fetch`. No hay que instalar nada más; se abre con la API corriendo.
+La carpeta `web/` tiene toda la interfaz: páginas HTML, CSS y JavaScript que Flask sirve tal cual y que consumen `/api/v1` con `fetch`. No hay que instalar Node ni compilar nada; se abre con la API corriendo. Hay dos partes: la **tienda** para los clientes y el **panel** para el personal.
+
+### Tienda (clientes)
 
 | Página | Qué hace | Endpoints que usa |
 |---|---|---|
-| `/` | Catálogo con búsqueda, filtros de categoría y género, y qué tallas hay en la sede elegida | `GET /sedes`, `/categorias`, `/productos?sede=` |
-| `/producto?id=N` | Precio, tallas y colores, disponibilidad por sede, ficha técnica como etiqueta de ropa y opiniones (ver, ordenar, votar y escribir) | `GET /productos/{id}/completo` (MySQL + MongoDB), `GET`/`POST /productos/{id}/resenas`, `POST /resenas/{id}/util` |
+| `/` | Catálogo con búsqueda, filtros y "solo lo que hay en mi sede"; el título cambia con la sede ("Lo que hay hoy en Chapinero") | `GET /sedes`, `/categorias`, `/productos?sede=` |
+| `/producto?id=N` | Precio, tallas y colores, disponibilidad por sede, agregar al carrito, ficha técnica como etiqueta de ropa y opiniones (ver, ordenar, votar y escribir) | `GET /productos/{id}/completo` (MySQL + MongoDB), `GET`/`POST /productos/{id}/resenas`, `POST /resenas/{id}/util` |
+| `/escanear` | Lee el QR de la etiqueta con la cámara (navegadores con `BarcodeDetector`, como Chrome en Android) o con el código escrito; cada lectura queda en `escaneos_qr` | `GET /variantes/qr/{codigo}?sede=` |
+| `/carrito` | Carrito, datos del cliente, recoger en tienda o domicilio, pago con la pasarela simulada (también se puede simular un rechazo) y tiquete con el QR del pedido y la factura | `GET /metodos-pago`, `POST /pedidos` (canal WEB), `POST /pedidos/{id}/pagos` |
 
-- La sede elegida se recuerda en el navegador.
-- `GET /api/v1/productos?sede=N` hace que `stock_total` y `tallas_disponibles` cuenten solo esa sede.
+- La sede elegida y el carrito se recuerdan en el navegador. El pedido web sale de la sede elegida, así que solo deja agregar lo que hay allí; si algo se agotó, la API responde 409 y la página dice en qué otras sedes hay.
 - Si MongoDB no responde, el detalle sigue mostrando precio y disponibilidad, y avisa que las opiniones no están disponibles.
 - El texto que escriben los clientes se inserta con `textContent`, nunca como HTML.
 
-Diseño: índigo denim, papel frío y un solo acento amarillo para el precio, que va en una etiqueta colgante. La tipografía es [Archivo](https://fonts.google.com/specimen/Archivo), usando su eje de ancho. La ficha técnica se dibuja como la etiqueta cosida de una prenda.
+### Panel del personal (`/panel`)
+
+Se entra con el correo y la contraseña de un usuario del sistema. El menú cambia según el rol: el **trabajador** opera su sede y la **administración** ve todo.
+
+| Sección | Qué hace | Rol |
+|---|---|---|
+| Inicio | Pedidos por cobrar y por preparar, traslados en camino, referencias agotadas, últimos pedidos; para administración también la actividad reciente (MongoDB) y lo más escaneado | Ambos |
+| Mostrador | Venta en tienda: agregar prendas por código QR o nombre (muestra existencias de la sede), cliente opcional para la factura, cobro y recibo con factura y QR | Ambos |
+| Pedidos | Lista con filtros y búsqueda por código; detalle con prendas, cliente, envío, pagos y factura; cobrar, preparar, enviar (transportadora y guía), entregar, cancelar y emitir factura | Ambos |
+| Inventario | Existencias por sede (disponibles y reservadas), registrar ingresos; ajustes por conteo físico e historial de movimientos | Ambos / Administración |
+| Traslados | Lista, detalle con avance, despachar (sede de origen) y recibir (sede de destino); crear traslados | Ambos / Administración |
+| Prendas | Crear y editar, desactivar y reactivar; tallas y colores; **editor de ficha técnica** (MongoDB) con vista previa de la etiqueta; **etiquetas QR para imprimir** y colgar en las prendas | Administración |
+| Categorías y sedes | Listar y crear | Administración |
+| Opiniones | Moderación: responder como tienda, ocultar o publicar, eliminar | Administración |
+| Usuarios | Crear, activar o desactivar el acceso, ver la actividad de cada uno | Administración |
+| Bitácora | Actividad de todos los usuarios (MongoDB) con filtros por usuario, acción, resultado y fechas | Administración |
+| Reportes | Prendas más escaneadas por periodo, con existencias de MySQL | Administración |
+| Mi perfil | Datos del usuario (MySQL) y sus últimas acciones (MongoDB): el endpoint combinado `/auth/perfil/actividad` | Ambos |
+
+El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pestaña o cuando vence el token, y entonces el panel vuelve a pedir el inicio de sesión. Las etiquetas QR codifican la dirección `/escanear?codigo=SOL-V-…`, así que cualquier celular las abre con la cámara normal.
+
+### Diseño
+
+Índigo denim, papel frío y un solo acento amarillo, reservado para el precio (que va en una etiqueta colgante) y para lo que pide atención en el panel. La tipografía es [Archivo](https://fonts.google.com/specimen/Archivo), usando su eje de ancho: expandida para la marca y los títulos, condensada para la etiqueta de la ficha técnica. Las prendas de ejemplo tienen ilustraciones SVG propias (`web/recursos/img/prendas/`). Los QR se generan en el navegador con [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), incluida en `web/recursos/vendor/` para que funcione sin internet.
 
 ## Endpoints
 
@@ -659,6 +696,11 @@ Diseño: índigo denim, papel frío y un solo acento amarillo para el precio, qu
 | Administración | POST | `/api/v1/categorias` | Administrador |
 | Administración | POST | `/api/v1/sedes` | Administrador |
 | Administración | POST | `/api/v1/usuarios` | Administrador |
+| Administración | GET | `/api/v1/usuarios` | Administrador |
+| Administración | PATCH | `/api/v1/usuarios/{id_usuario}` (activar o desactivar) | Administrador |
+| Administración | GET | `/api/v1/productos?inactivos=true` y `/api/v1/productos/{id}` desactivados | Administrador |
+| Inventario | GET | `/api/v1/traslados` | Trabajador |
+| Reseñas (MongoDB) | GET | `/api/v1/resenas` (moderación, incluye ocultas) | Administrador |
 | Fichas (MongoDB) | GET | `/api/v1/productos/{id_producto}/ficha` | Público |
 | Fichas (MongoDB) | PUT | `/api/v1/productos/{id_producto}/ficha` | Administrador |
 | Fichas (MongoDB) | DELETE | `/api/v1/productos/{id_producto}/ficha` | Administrador |
@@ -689,12 +731,13 @@ api/
   __init__.py              # crear_app(): configuración, base de datos, rutas, errores
   config.py                # lectura de variables de entorno
   nosql.py                 # conexión a MongoDB, colecciones e índices
+  demo.py                  # catálogo de ejemplo (flask sembrar-demo)
   modelos.py               # modelos Flask-SQLAlchemy (reflejan database/solsticio_schema.sql)
   seguridad.py             # JWT, bcrypt y control de roles y sedes
   validacion.py            # validación de datos de entrada
   serializadores.py        # conversión de modelos a JSON
   errores.py               # ErrorApi y manejadores -> {"detail": "..."}
-  comandos.py              # flask verificar-bd / verificar-mongo / crear-admin
+  comandos.py              # flask verificar-bd / verificar-mongo / crear-admin / sembrar-demo
   rutas/                   # capa HTTP: un blueprint por módulo, bajo /api/v1
     auth.py  catalogo.py  inventario.py  pedidos.py  admin.py      # MySQL
     actividad.py  resenas.py  fichas.py                            # MongoDB y combinados
@@ -715,10 +758,14 @@ postman/
 scripts/
   flujo_demo_nosql.py      # recorre todos los endpoints NoSQL y combinados
 tests/                     # pruebas automáticas con pytest (MySQL + MongoDB reales)
-  conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py  test_web.py
-web/                       # tienda web (HTML + CSS + JS) servida por Flask
-  index.html  producto.html
-  recursos/css/estilos.css  recursos/js/comun.js  catalogo.js  producto.js
+  conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py  test_web.py  test_panel_api.py
+web/                       # interfaz (HTML + CSS + JS) servida por Flask
+  index.html  producto.html  escanear.html  carrito.html  panel.html
+  recursos/css/            # estilos.css (tienda y base), panel.css
+  recursos/js/             # comun.js, etiqueta.js, catalogo.js, producto.js, escanear.js, carrito.js
+  recursos/js/panel/       # app.js (sesión y rutas), ui.js (componentes) y una sección por archivo
+  recursos/img/            # favicon e ilustraciones de las prendas de ejemplo
+  recursos/vendor/         # qrcode-generator (MIT)
 legacy/prototipo/          # primer prototipo (SQLite + frontends HTML), ya no se usa
 ```
 
@@ -744,7 +791,7 @@ Flujo de una petición: **ruta** (valida permisos y datos) → **servicio** (reg
 - Devoluciones y cambios (`/api/v1/devoluciones`) con nota crédito.
 - Más reportes (`/api/v1/reportes/...`); ya existe `qr-mas-escaneados`.
 - Registro público de clientes (`/api/v1/auth/registro`).
-- Nuevos frontends sobre `/api/v1` (los del prototipo están en `legacy/prototipo/`).
+- Seguimiento público del pedido para el cliente (hoy solo el personal consulta un pedido por su código).
 
 ## Autores
 

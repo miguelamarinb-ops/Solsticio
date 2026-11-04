@@ -29,6 +29,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; }
 
@@ -373,6 +374,112 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .mensaje-formulario { margin: 1rem 0 0; font-size: var(--t-s); }
 
 /* ---------------------------------------------------------------------
+   Navegación de la tienda, enlace para saltar y carrito en la cabecera
+   --------------------------------------------------------------------- */
+.saltar {
+  position: absolute; left: 1rem; top: -3rem; z-index: 10;
+  background: var(--sol); color: var(--indigo); padding: 0.5rem 0.9rem; border-radius: var(--radio);
+  font-weight: 700;
+}
+.saltar:focus { top: 0.75rem; }
+
+.nav-tienda { display: flex; gap: 1.25rem; align-items: center; font-size: var(--t-s); }
+.nav-tienda__enlace { text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0; }
+.nav-tienda__enlace:hover, .nav-tienda__enlace[aria-current="page"] { text-decoration: underline; text-underline-offset: 4px; }
+.contador {
+  min-width: 1.35rem; height: 1.35rem; padding: 0 0.35rem; border-radius: 999px;
+  background: var(--sol); color: var(--indigo);
+  font-size: var(--t-xs); font-weight: 800; display: inline-grid; place-items: center;
+}
+.contador[hidden] { display: none; }
+
+.contenedor--angosto { max-width: 52rem; }
+
+/* ---------------------------------------------------------------------
+   Compra (detalle) y carrito
+   --------------------------------------------------------------------- */
+.compra { margin: 1.25rem 0 0.5rem; }
+.compra__fila { display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap; margin-top: 1rem; }
+.compra__cantidad { display: flex; flex-direction: column; gap: 0.25rem; font-size: var(--t-s); font-weight: 650; }
+.compra__cantidad input {
+  width: 5rem; padding: 0.55rem 0.6rem; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--algodon);
+}
+.boton--compra { background: var(--indigo); border-color: var(--indigo); }
+.boton--ancho { width: 100%; margin-top: 1rem; padding: 0.85rem; font-size: var(--t-m); }
+.nota-compra { font-size: var(--t-s); color: var(--indigo-suave); margin: 0.6rem 0 0; }
+
+.pago { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+.lineas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
+.linea {
+  display: grid; grid-template-columns: 5rem 1fr auto auto auto; gap: 1rem; align-items: center;
+  padding: 1rem 0; border-bottom: 1px solid var(--linea);
+}
+.linea__foto { display: grid; place-items: center; aspect-ratio: 4 / 5; background: var(--algodon); border: 1px solid var(--linea); border-radius: var(--radio); overflow: hidden; }
+.linea__foto img { width: 100%; height: 100%; object-fit: cover; }
+.linea__foto .sin-foto { width: 60%; font-size: var(--t-l); }
+.linea__datos p { margin: 0.1rem 0 0; font-size: var(--t-s); color: var(--indigo-suave); }
+.linea__nombre { font-weight: 700; text-decoration: none; }
+.linea__nombre:hover { text-decoration: underline; }
+.linea__cantidad input { width: 4.25rem; padding: 0.45rem; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--algodon); }
+.linea__total { margin: 0; font-weight: 700; min-width: 6.5rem; text-align: right; }
+.linea__quitar { background: none; border: 0; text-decoration: underline; cursor: pointer; font-size: var(--t-s); color: var(--indigo-suave); padding: 0.25rem; }
+.lineas--compactas .linea--compacta { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; font-size: var(--t-s); grid-template-columns: none; }
+.totales p { display: flex; justify-content: space-between; align-items: baseline; margin: 1rem 0 0; font-size: var(--t-l); }
+.totales strong { font-stretch: 112%; font-weight: 800; }
+
+.formulario--pago h2 { font-stretch: 125%; font-weight: 750; font-size: var(--t-l); margin: 0 0 1rem; }
+.formulario--pago .opciones { margin-top: 1.25rem; }
+.campo select { border: 1px solid var(--linea); border-radius: var(--radio); padding: 0.55rem 0.65rem; background: var(--algodon); }
+.campos[hidden] { display: none; }
+#zona-envio { margin-top: 0.5rem; }
+.casilla { display: flex; gap: 0.5rem; align-items: center; font-size: var(--t-s); margin-top: 0.75rem; }
+.casilla input { width: 1rem; height: 1rem; accent-color: var(--indigo); }
+.conflictos { margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: var(--t-s); }
+
+/* Confirmación: un tiquete con el QR del pedido */
+.confirmacion { display: grid; place-items: center; padding: 1rem 0; }
+.confirmacion__ticket {
+  width: min(32rem, 100%); background: var(--algodon); border: 1px solid var(--linea); border-radius: 6px;
+  padding: 2rem; outline: 1.5px dashed var(--linea); outline-offset: -10px;
+}
+.confirmacion__ticket h1:focus { outline: none; }
+.confirmacion__qr { display: grid; justify-items: center; gap: 0.5rem; margin: 1.5rem 0; }
+.qr { width: 11rem; height: 11rem; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.qr svg rect[fill="#ffffff"], .qr svg path[fill="#ffffff"] { fill: transparent; }
+.codigo-pedido { font-stretch: 125%; font-weight: 800; font-size: var(--t-l); letter-spacing: 0.04em; margin: 0; }
+.qr-texto { font-weight: 700; }
+.datos { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; font-size: var(--t-s); margin: 1.25rem 0; }
+.datos dt { color: var(--indigo-suave); }
+.datos dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+
+/* ---------------------------------------------------------------------
+   Escáner de QR
+   --------------------------------------------------------------------- */
+.escaner { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; margin-bottom: 2rem; }
+.escaner__camara {
+  position: relative; aspect-ratio: 1; background: var(--indigo); border-radius: 6px; overflow: hidden;
+  display: grid; place-items: center; align-content: center; gap: 0.75rem; padding: 1.5rem; text-align: center;
+}
+.escaner__camara video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.escaner__camara video[hidden] { display: none; }
+.escaner__marco {
+  position: absolute; inset: 18%; border: 3px solid var(--sol); border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 999px rgba(30, 42, 74, 0.25);
+}
+.escaner__camara .boton { position: relative; background: var(--sol); color: var(--indigo); border-color: var(--sol); }
+.escaner__camara .nota-compra { position: relative; color: #D5DBEA; max-width: 22ch; }
+.escaner__manual label { display: block; font-weight: 650; margin-bottom: 0.5rem; }
+.buscador--claro input { border: 1px solid var(--linea); border-right: 0; }
+.buscador--claro button { background: var(--indigo); }
+
+.ficha-qr { display: grid; grid-template-columns: 12rem 1fr; gap: 2rem; background: var(--algodon); border: 1px solid var(--linea); border-radius: 6px; padding: 1.5rem; }
+.ficha-qr__foto { aspect-ratio: 4 / 5; display: grid; place-items: center; overflow: hidden; border-radius: var(--radio); }
+.ficha-qr__foto img { width: 100%; height: 100%; object-fit: cover; }
+.ficha-qr__nombre { font-stretch: 125%; font-weight: 750; font-size: var(--t-xl); margin: 0.25rem 0; line-height: 1.2; }
+.ficha-qr .colgante { margin: 0.75rem 0 1rem; }
+
+/* ---------------------------------------------------------------------
    Pie
    --------------------------------------------------------------------- */
 .pie { border-top: 1px solid var(--linea); }
@@ -390,6 +497,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .filtros fieldset { margin-bottom: 1rem; }
   .filtros__opciones { display: flex; flex-wrap: wrap; gap: 0 1rem; }
   .debajo .etiqueta { max-width: 22rem; }
+}
+@media (max-width: 52rem) {
+  .pago, .escaner { grid-template-columns: 1fr; }
+  .nav-tienda { margin-left: auto; }
+}
+@media (max-width: 40rem) {
+  .linea { grid-template-columns: 4rem 1fr auto; }
+  .linea__cantidad { grid-column: 2; }
+  .linea__total { grid-column: 3; grid-row: 1; }
+  .linea__quitar { grid-column: 3; justify-self: end; }
+  .ficha-qr { grid-template-columns: 1fr; }
+  .ficha-qr__foto { max-width: 12rem; }
+  .escaner__camara { aspect-ratio: 4 / 3; }
 }
 @media (max-width: 34rem) {
   .campos { grid-template-columns: 1fr; }

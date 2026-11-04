@@ -1,22 +1,27 @@
-// Catálogo: filtros (categoría, género, búsqueda), stock según la sede elegida
-// y paginación con "Ver más". El estado de los filtros vive en la URL para que
-// se pueda compartir el enlace o volver atrás sin perderlos.
+// Catálogo: filtros (categoría, género, búsqueda, solo disponibles), stock según
+// la sede elegida y paginación con "Ver más". Los filtros viven en la URL para
+// poder compartir el enlace o volver atrás sin perderlos.
 import { api, el, foto, iniciarCabecera, mostrarError, precio } from "./comun.js";
 
 const TAMANO = 12;
 const resultados = document.getElementById("resultados");
 const conteo = document.getElementById("conteo");
 const zonaMas = document.getElementById("zona-mas");
-const formBusqueda = document.getElementById("form-busqueda");
-const campoBusqueda = document.getElementById("q");
+const titulo = document.getElementById("titulo-catalogo");
+const busquedaActiva = document.getElementById("busqueda-activa");
+const soloDisponibles = document.getElementById("solo-disponibles");
 
 let cabecera;
 let pagina = 1;
+let total = 0;
 let cargados = [];
 
 function filtros() {
   const p = new URLSearchParams(location.search);
-  return { q: p.get("q") || "", categoria: p.get("categoria") || "", genero: p.get("genero") || "" };
+  return {
+    q: p.get("q") || "", categoria: p.get("categoria") || "", genero: p.get("genero") || "",
+    disponibles: p.get("disponibles") === "1",
+  };
 }
 
 function actualizarUrl(cambios) {
@@ -25,11 +30,6 @@ function actualizarUrl(cambios) {
     if (valor) p.set(clave, valor); else p.delete(clave);
   }
   history.replaceState(null, "", p.toString() ? `?${p}` : location.pathname);
-}
-
-function nombreSede() {
-  const opcion = document.querySelector("#sede option:checked");
-  return opcion ? opcion.textContent : "tu sede";
 }
 
 function tarjeta(producto) {
@@ -43,23 +43,31 @@ function tarjeta(producto) {
       el("p", { class: "prenda__stock" },
         el("span", { class: `punto ${hay ? "punto--si" : "punto--no"}`, "aria-hidden": "true" }),
         hay
-          ? el("span", {}, `Tallas ${producto.tallas_disponibles.join(", ")} en ${nombreSede()}`)
-          : el("span", { class: "texto-no" }, `Agotado en ${nombreSede()}`)),
+          ? el("span", {}, `Tallas ${producto.tallas_disponibles.join(", ")}`)
+          : el("span", { class: "texto-no" }, `Agotado en ${cabecera.nombreSede()}`)),
     ));
 }
 
-function pintar(total) {
-  if (!cargados.length) {
-    const { q } = filtros();
+function pintar() {
+  const { q, disponibles } = filtros();
+  titulo.textContent = `Lo que hay hoy en ${cabecera.nombreSede()}`;
+  busquedaActiva.replaceChildren(q
+    ? el("span", {}, `Buscando "${q}". `, el("a", { href: "/" }, "Ver todo el catálogo"))
+    : "");
+
+  const visibles = disponibles ? cargados.filter((p) => p.stock_total > 0) : cargados;
+  if (!visibles.length) {
     resultados.replaceChildren(el("div", { class: "aviso" },
-      el("p", {}, q ? `No encontramos prendas que coincidan con "${q}".` : "No hay prendas con estos filtros."),
-      el("p", {}, "Prueba con otra categoría o borra la búsqueda.")));
-    conteo.textContent = "";
-    zonaMas.replaceChildren();
-    return;
+      el("p", {}, q ? `No encontramos prendas que coincidan con "${q}".`
+        : disponibles ? `Con estos filtros no hay prendas disponibles en ${cabecera.nombreSede()}.`
+          : "No hay prendas con estos filtros."),
+      el("p", {}, disponibles ? "Prueba con otra sede o quita \"Solo lo que hay en mi sede\"." : "Prueba con otra categoría o borra la búsqueda.")));
+  } else {
+    resultados.replaceChildren(el("ul", { class: "rejilla" }, visibles.map(tarjeta)));
   }
-  resultados.replaceChildren(el("ul", { class: "rejilla" }, cargados.map(tarjeta)));
-  conteo.textContent = total === 1 ? "1 prenda" : `${total} prendas`;
+  conteo.textContent = disponibles
+    ? `${visibles.length} de ${cargados.length} prendas cargadas están en ${cabecera.nombreSede()}`
+    : total === 1 ? "1 prenda" : `${total} prendas`;
   zonaMas.replaceChildren(cargados.length < total
     ? el("button", { class: "boton boton--secundario", type: "button", onclick: () => cargar(pagina + 1) }, "Ver más prendas")
     : "");
@@ -81,8 +89,9 @@ async function cargar(numero = 1) {
   try {
     const datos = await api(`/productos?${parametros}`);
     pagina = numero;
+    total = datos.total;
     cargados = numero === 1 ? datos.items : cargados.concat(datos.items);
-    pintar(datos.total);
+    pintar();
   } catch (error) {
     mostrarError(resultados, error, () => cargar(1));
   }
@@ -98,29 +107,26 @@ async function cargarCategorias() {
 }
 
 function marcarFiltrosDesdeUrl() {
-  const { q, genero, categoria } = filtros();
-  campoBusqueda.value = q;
+  const { genero, categoria, disponibles } = filtros();
+  soloDisponibles.checked = disponibles;
   for (const radio of document.querySelectorAll('input[name="genero"]')) radio.checked = radio.value === genero;
   for (const radio of document.querySelectorAll('input[name="categoria"]')) radio.checked = radio.value === categoria;
 }
 
 document.querySelector(".filtros").addEventListener("change", (evento) => {
-  const { name, value } = evento.target;
-  if (name === "categoria" || name === "genero") {
+  const { name, value, id, checked } = evento.target;
+  if (id === "solo-disponibles") {
+    actualizarUrl({ disponibles: checked ? "1" : "" });
+    pintar();
+  } else if (name === "categoria" || name === "genero") {
     actualizarUrl({ [name]: value });
     cargar(1);
   }
 });
 
-formBusqueda.addEventListener("submit", (evento) => {
-  evento.preventDefault();
-  actualizarUrl({ q: campoBusqueda.value.trim() });
-  cargar(1);
-});
-
 async function iniciar() {
   try {
-    cabecera = await iniciarCabecera({ alCambiarSede: () => cargar(1) });
+    cabecera = await iniciarCabecera({ alCambiarSede: () => cargar(1), busqueda: filtros().q });
     await cargarCategorias();
   } catch (error) {
     mostrarError(resultados, error, iniciar);

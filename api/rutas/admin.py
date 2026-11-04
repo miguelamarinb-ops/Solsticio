@@ -2,9 +2,11 @@
 admin.py
 Administración (solo ADMINISTRADOR): productos, variantes, categorías, sedes y usuarios.
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, g, jsonify, request
+from sqlalchemy import select
 
-from api.modelos import Producto
+from api.errores import ErrorApi
+from api.modelos import Producto, Rol, Usuario, db
 from api.seguridad import ADMINISTRADOR, requiere_auth
 from api.serializadores import (
     categoria_dict, precio_final, producto_detalle, sede_dict, sedes_activas, usuario_dict,
@@ -27,10 +29,37 @@ def crear_sede():
     return jsonify(sede_dict(catalogo.crear_sede(leer_json()))), 201
 
 
+@bp.get("/usuarios")
+@requiere_auth(ADMINISTRADOR)
+def listar_usuarios():
+    """?rol=ADMINISTRADOR|TRABAJADOR  ?activo=true|false"""
+    consulta = select(Usuario).join(Rol).order_by(Usuario.id_usuario)
+    if request.args.get("rol"):
+        consulta = consulta.where(Rol.nombre == request.args["rol"].strip().upper())
+    if request.args.get("activo") in ("true", "false"):
+        consulta = consulta.where(Usuario.activo.is_(request.args["activo"] == "true"))
+    return jsonify([usuario_dict(u) for u in db.session.scalars(consulta).all()])
+
+
 @bp.post("/usuarios")
 @requiere_auth(ADMINISTRADOR)
 def crear_usuario():
     return jsonify(usuario_dict(usuarios.crear_usuario(leer_json()))), 201
+
+
+@bp.patch("/usuarios/<int:id_usuario>")
+@requiere_auth(ADMINISTRADOR)
+def cambiar_estado_usuario(id_usuario):
+    """Activa o desactiva el acceso de un usuario: {"activo": false}. No hay borrado físico."""
+    usuario = obtener_o_404(Usuario, id_usuario, "Usuario no encontrado")
+    datos = leer_json()
+    if not isinstance(datos.get("activo"), bool):
+        raise ErrorApi(422, "'activo' debe ser true o false")
+    if usuario.id_usuario == g.usuario.id_usuario and not datos["activo"]:
+        raise ErrorApi(409, "No puede desactivar su propio usuario")
+    usuario.activo = datos["activo"]
+    db.session.commit()
+    return jsonify(usuario_dict(usuario))
 
 
 @bp.post("/productos")

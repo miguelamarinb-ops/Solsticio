@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prenda | Solsticio</title>
+  <link rel="icon" href="/recursos/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
@@ -11,28 +12,16 @@
   <script type="module" src="/recursos/js/producto.js"></script>
 </head>
 <body>
-  <header class="cabecera">
-    <div class="cabecera__interior">
-      <a class="marca" href="/">SOLSTICIO</a>
-      <form class="buscador" role="search" action="/">
-        <label class="solo-lector" for="q">Buscar prendas</label>
-        <input id="q" name="q" type="search" placeholder="Buscar prendas" autocomplete="off">
-        <button type="submit">Buscar</button>
-      </form>
-      <div class="selector-sede">
-        <label for="sede">Tu sede</label>
-        <select id="sede"><option>Cargando…</option></select>
-      </div>
-    </div>
-  </header>
+  <a class="saltar" href="#contenido">Ir al contenido</a>
+  <header class="cabecera" data-cabecera></header>
 
-  <main class="contenedor">
+  <main class="contenedor" id="contenido">
     <nav class="migas" aria-label="Ruta"><a href="/">Catálogo</a> / <span id="miga-actual">Prenda</span></nav>
     <div id="producto"><p class="cargando">Cargando prenda…</p></div>
   </main>
 
   <footer class="pie">
-    <p>Solsticio, tiendas en Chapinero, Centro y Suba (Bogotá)</p>
+    <p>Solsticio, tiendas en Chapinero, Centro y Suba (Bogotá). <a href="/panel">Acceso del personal</a></p>
   </footer>
 </body>
 </html>

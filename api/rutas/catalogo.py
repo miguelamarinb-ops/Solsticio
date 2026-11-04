@@ -8,13 +8,13 @@ from sqlalchemy.orm import selectinload
 
 from api.errores import ErrorApi
 from api.modelos import Categoria, Color, Genero, Producto, Talla, Variante, db
-from api.seguridad import auth_opcional
+from api.seguridad import auth_opcional, es_admin
 from api.serializadores import (
     categoria_dict, disponibilidad_detallada, producto_detalle, producto_resumen, sede_dict,
     sedes_activas, variante_por_qr,
 )
 from api.servicios import actividad
-from api.validacion import a_enum, arg_entero
+from api.validacion import a_enum, arg_booleano, arg_entero
 
 bp = Blueprint("catalogo", __name__)
 
@@ -45,12 +45,12 @@ def listar_colores():
 
 
 @bp.get("/productos")
+@auth_opcional
 def listar_productos():
     pagina = arg_entero("page", 1, minimo=1)
     tamano = arg_entero("size", 20, minimo=1, maximo=100)
     consulta = (
         select(Producto)
-        .where(Producto.activo.is_(True))
         .options(
             selectinload(Producto.categoria),
             selectinload(Producto.imagenes),
@@ -60,6 +60,9 @@ def listar_productos():
         )
         .order_by(Producto.id_producto)
     )
+    # ?inactivos=true: el administrador también ve los productos desactivados (para reactivarlos).
+    if not (es_admin(g.usuario) and arg_booleano("inactivos")):
+        consulta = consulta.where(Producto.activo.is_(True))
     categoria = arg_entero("categoria", minimo=1)
     if categoria:
         consulta = consulta.where(Producto.id_categoria == categoria)
@@ -85,9 +88,11 @@ def listar_productos():
 
 
 @bp.get("/productos/<int:id_producto>")
+@auth_opcional
 def obtener_producto(id_producto):
     producto = db.session.get(Producto, id_producto)
-    if producto is None or not producto.activo:
+    # Un producto desactivado solo lo ve el administrador (para editarlo o reactivarlo).
+    if producto is None or (not producto.activo and not es_admin(g.usuario)):
         raise ErrorApi(404, "Producto no encontrado")
     return jsonify(producto_detalle(producto, sedes_activas()))
 

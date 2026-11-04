@@ -32,6 +32,19 @@ def crear_resena(id_producto):
     return jsonify(resenas.crear_resena(producto, leer_json())), 201
 
 
+@bp.get("/resenas")
+@requiere_auth(ADMINISTRADOR)
+def listar_resenas_moderacion():
+    """Bandeja de moderación: ?estado=PUBLICADA|OCULTA&id_producto=&calificacion=&page=&size="""
+    return jsonify(resenas.listar_para_moderar(
+        request.args.get("estado"),
+        arg_entero("id_producto", minimo=1),
+        arg_entero("calificacion", minimo=1, maximo=5),
+        arg_entero("page", 1, minimo=1),
+        arg_entero("size", 20, minimo=1, maximo=100),
+    ))
+
+
 @bp.get("/resenas/<id_resena>")
 def obtener_resena(id_resena):
     return jsonify(resenas.obtener_resena(nosql.a_object_id(id_resena, "Reseña no encontrada"), publica=True))

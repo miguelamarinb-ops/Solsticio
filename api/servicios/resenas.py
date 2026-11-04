@@ -154,6 +154,28 @@ def listar_resenas(id_producto, pagina, tamano, orden="recientes", calificacion=
     return nosql.paginar(nosql.RESENAS, filtro, ordenes[orden], pagina, tamano, PROYECCION_PUBLICA)
 
 
+def listar_para_moderar(estado, id_producto, calificacion, pagina, tamano):
+    """Todas las reseñas (también las ocultas) con el nombre del producto leído de MySQL."""
+    filtro = {}
+    if estado:
+        estado = estado.strip().upper()
+        if estado not in (PUBLICADA, OCULTA):
+            raise ErrorApi(422, "Valor inválido para 'estado'", permitidos=[PUBLICADA, OCULTA])
+        filtro["estado"] = estado
+    if id_producto:
+        filtro["id_producto"] = id_producto
+    if calificacion:
+        filtro["calificacion"] = calificacion
+    pagina_datos = nosql.paginar(nosql.RESENAS, filtro, [("fecha", DESCENDING)], pagina, tamano)
+    ids = {r["id_producto"] for r in pagina_datos["items"]}
+    nombres = dict(db.session.execute(
+        select(Producto.id_producto, Producto.nombre).where(Producto.id_producto.in_(ids))
+    ).all()) if ids else {}
+    for resena in pagina_datos["items"]:
+        resena["producto"] = nombres.get(resena["id_producto"])
+    return pagina_datos
+
+
 def resumen_resenas(id_producto):
     """Promedio, distribución de estrellas y opinión sobre la talla, en una sola agregación."""
     pipeline = [

@@ -37,6 +37,18 @@ def registrar_comandos(app):
         for nombre in nosql.INDICES:
             click.echo(f"  {nombre}: {base[nombre].estimated_document_count()} documentos")
 
+    @app.cli.command("sembrar-demo")
+    def sembrar_demo():
+        """Carga un catálogo de ejemplo (prendas, existencias, fichas y opiniones). No duplica datos."""
+        from api.demo import sembrar
+        try:
+            resumen = sembrar()
+        except PyMongoError as error:
+            raise click.ClickException(f"MongoDB no responde: {error}") from None
+        click.echo("Catálogo de ejemplo listo. Creado ahora:")
+        for clave, cantidad in resumen.items():
+            click.echo(f"  {clave}: {cantidad}")
+
     @app.cli.command("crear-admin")
     @click.option("--email", prompt=True)
     @click.option("--documento", prompt=True)

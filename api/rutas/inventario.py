@@ -9,7 +9,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from api.errores import ErrorApi
-from api.modelos import MovimientoInventario, Stock, TipoMovimiento, Traslado, Variante, db
+from api.modelos import (
+    EstadoTraslado, MovimientoInventario, Stock, TipoMovimiento, Traslado, Variante, db,
+)
 from api.seguridad import ADMINISTRADOR, PERSONAL, es_admin, requiere_auth
 from api.serializadores import (
     movimiento_aplicado, movimiento_dict, nombre_completo, stock_dict, traslado_dict,
@@ -100,6 +102,29 @@ def listar_movimientos():
 def crear_traslado():
     traslado, disponibles = traslados.crear_traslado(leer_json(), g.usuario)
     return jsonify(traslado_dict(traslado, disponibles)), 201
+
+
+@bp.get("/traslados")
+@requiere_auth(*PERSONAL)
+def listar_traslados():
+    """?estado=&id_sede=&page=&size=  Un trabajador solo ve los traslados que tocan su sede."""
+    pagina = arg_entero("page", 1, minimo=1)
+    tamano = arg_entero("size", 20, minimo=1, maximo=100)
+    consulta = select(Traslado).order_by(Traslado.id_traslado.desc())
+    id_sede = arg_entero("id_sede", minimo=1)
+    if not es_admin(g.usuario):
+        id_sede = g.usuario.id_sede
+    if id_sede:
+        consulta = consulta.where((Traslado.id_sede_origen == id_sede) | (Traslado.id_sede_destino == id_sede))
+    if request.args.get("estado"):
+        consulta = consulta.where(Traslado.estado == a_enum(EstadoTraslado, request.args["estado"], "estado"))
+    resultado = db.paginate(consulta, page=pagina, per_page=tamano, error_out=False)
+    return jsonify({
+        "total": resultado.total,
+        "page": pagina,
+        "size": tamano,
+        "items": [traslado_dict(t) for t in resultado.items],
+    })
 
 
 @bp.get("/traslados/<int:id_traslado>")

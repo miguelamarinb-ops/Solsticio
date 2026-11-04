@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Escanear QR | Solsticio</title>
+  <link rel="icon" href="/recursos/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/recursos/css/estilos.css">
+  <script type="module" src="/recursos/js/escanear.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Ir al contenido</a>
+  <header class="cabecera" data-cabecera></header>
+
+  <main class="contenedor contenedor--angosto" id="contenido">
+    <h1 class="titulo-pagina">Escanea la etiqueta</h1>
+    <p class="subtitulo">Cada prenda trae un código QR en su etiqueta colgante. Escanéalo para ver el precio y en qué sedes hay tu talla.</p>
+
+    <div class="escaner">
+      <div class="escaner__camara" id="zona-camara">
+        <video id="video" playsinline muted hidden></video>
+        <div class="escaner__marco" aria-hidden="true"></div>
+        <button class="boton" type="button" id="activar-camara">Usar la cámara</button>
+        <p class="nota-compra" id="estado-camara"></p>
+      </div>
+
+      <form class="escaner__manual" id="form-codigo">
+        <label for="codigo">O escribe el código que aparece bajo el QR</label>
+        <div class="buscador buscador--claro">
+          <input id="codigo" name="codigo" placeholder="SOL-V-000001" autocomplete="off" autocapitalize="characters" required>
+          <button type="submit">Consultar</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="resultado" aria-live="polite"></div>
+  </main>
+
+  <footer class="pie">
+    <p>Solsticio, tiendas en Chapinero, Centro y Suba (Bogotá). <a href="/panel">Acceso del personal</a></p>
+  </footer>
+</body>
+</html>

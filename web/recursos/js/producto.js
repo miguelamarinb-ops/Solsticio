@@ -1,6 +1,7 @@
 // Detalle de una prenda. Usa /productos/{id}/completo, que junta MySQL (precio,
 // variantes, stock por sede) y MongoDB (ficha técnica, opiniones, escaneos).
-import { api, el, estrellas, fecha, foto, iniciarCabecera, mostrarError, precio } from "./comun.js";
+import { api, carrito, el, estrellas, fecha, foto, iniciarCabecera, mostrarError, precio } from "./comun.js";
+import { etiqueta, nombreAtributo } from "./etiqueta.js";
 
 const contenedor = document.getElementById("producto");
 const id = Number(new URLSearchParams(location.search).get("id"));
@@ -64,6 +65,7 @@ function pintarCompra() {
       contenido: [el("span", { class: "muestra-color", style: `background:${v.color.codigo_hex || "#ccc"}`, "aria-hidden": "true" }), v.color.nombre],
     }))),
     el("div", { "aria-live": "polite" }, resumen),
+    bloqueCompra(variante, enMiSede, nombreMiSede),
     el("p", { class: "sedes__titulo" }, "Disponibilidad por sede"),
     el("ul", { class: "sedes" }, variante.disponibilidad.map((d) =>
       el("li", { class: d.id_sede === sedeMia ? "es-mia" : null },
@@ -74,45 +76,38 @@ function pintarCompra() {
   );
 }
 
-// ---------------------------------------------------------------------
-// Ficha técnica como etiqueta (MongoDB)
-// ---------------------------------------------------------------------
-const NOMBRES_ATRIBUTO = {
-  material: "Material", gramaje_gsm: "Gramaje", cuello: "Cuello", manga: "Manga", fit: "Corte",
-  tiro: "Tiro", elasticidad: "Elasticidad", lavado: "Lavado", bolsillos: "Bolsillos", cierre: "Cierre",
-  certificaciones: "Certificaciones",
-};
-
-function nombreAtributo(clave) {
-  if (NOMBRES_ATRIBUTO[clave]) return NOMBRES_ATRIBUTO[clave];
-  const texto = clave.replaceAll("_", " ");
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
-
-function valorAtributo(clave, valor) {
-  if (clave === "gramaje_gsm") return `${valor} g/m²`;
-  if (typeof valor === "boolean") return valor ? "Sí" : "No";
-  if (Array.isArray(valor)) return valor.map((v) => (typeof v === "object" ? Object.values(v).join(" ") : v)).join(", ");
-  if (valor && typeof valor === "object") return Object.values(valor).join(", ");
-  return String(valor);
-}
-
-function etiqueta(ficha) {
-  const { composicion, pais_origen: origen, ...resto } = ficha.atributos;
-  const lineas = Array.isArray(composicion) && composicion.length
-    ? composicion.map((c) => `${c.porcentaje}% ${c.fibra}`)
-    : resto.material ? [resto.material] : [];
-  if (lineas.length) delete resto.material;   // ya se lee en la composición
-
-  return el("aside", { class: "etiqueta", "aria-labelledby": "titulo-etiqueta" },
-    el("h2", { id: "titulo-etiqueta" }, "SOLSTICIO", el("span", { class: "solo-lector" }, ": ficha técnica")),
-    lineas.length ? el("p", { class: "etiqueta__composicion" }, lineas.flatMap((l, i) => (i ? [el("br"), l] : [l]))) : null,
-    Object.keys(resto).length
-      ? el("dl", {}, Object.entries(resto).flatMap(([clave, valor]) => [
-        el("dt", {}, nombreAtributo(clave)), el("dd", {}, valorAtributo(clave, valor))]))
-      : null,
-    ficha.cuidados?.length ? el("ul", { "aria-label": "Cuidados" }, ficha.cuidados.map((c) => el("li", {}, c))) : null,
-    origen ? el("p", { class: "etiqueta__origen" }, `Hecho en ${origen}`) : null,
+// El pedido web se arma en la sede elegida: solo se puede llevar lo que hay allí.
+function bloqueCompra(variante, enMiSede, nombreMiSede) {
+  const enCarrito = carrito.items().find((i) => i.id_variante === variante.id_variante)?.cantidad ?? 0;
+  const maximo = Math.max(enMiSede - enCarrito, 0);
+  if (!enMiSede) {
+    return el("p", { class: "nota-compra" }, `Para comprarla, elige arriba una sede donde haya existencias.`);
+  }
+  const cantidad = el("input", {
+    id: "cantidad", type: "number", min: 1, max: Math.max(maximo, 1), value: 1, inputmode: "numeric",
+    disabled: !maximo,
+  });
+  const aviso = el("p", { class: "nota-compra", role: "status" },
+    enCarrito ? `Ya tienes ${enCarrito} en el carrito.` : "");
+  const boton = el("button", { class: "boton boton--compra", type: "button", disabled: !maximo }, "Agregar al carrito");
+  boton.addEventListener("click", () => {
+    const n = Math.min(Math.max(Number(cantidad.value) || 1, 1), maximo);
+    carrito.agregar({
+      id_variante: variante.id_variante, id_producto: producto.id_producto, nombre: producto.nombre,
+      talla: variante.talla, color: variante.color.nombre, precio: variante.precio_final,
+      imagen: (producto.imagenes.find((i) => i.es_principal) || producto.imagenes[0])?.url || null,
+    }, n);
+    pintarCompra();
+    const nota = document.querySelector(".nota-compra");
+    nota.replaceChildren(`Agregaste ${n} al carrito para recoger o enviar desde ${nombreMiSede}. `,
+      el("a", { href: "/carrito" }, "Ver carrito"));
+  });
+  return el("div", { class: "compra" },
+    el("div", { class: "compra__fila" },
+      el("label", { class: "compra__cantidad" }, el("span", {}, "Cantidad"), cantidad),
+      boton),
+    aviso,
+    !maximo ? el("p", { class: "nota-compra" }, `Ya tienes en el carrito todo lo que hay en ${nombreMiSede}.`) : null,
   );
 }
 

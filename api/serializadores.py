@@ -116,6 +116,7 @@ def producto_resumen(producto, sedes):
         "imagen_principal": imagen_principal(producto),
         "stock_total": stock_total,
         "tallas_disponibles": tallas,
+        "activo": producto.activo,
     }
 
 
