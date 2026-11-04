@@ -1,13 +1,18 @@
 """
 flujo_demo_nosql.py
 Carga datos de ejemplo y recorre todos los endpoints de MongoDB y los combinados SQL + NoSQL.
-Requiere la API corriendo (python app.py), las bases vacías y el admin admin@solsticio.com / Admin12345.
+Requiere la API corriendo (python app.py), las bases vacías y un usuario ADMINISTRADOR.
 
     python scripts/flujo_demo_nosql.py [archivo_salida.json]
 
+Credenciales del administrador: variables de entorno SOLSTICIO_EMAIL y SOLSTICIO_PASSWORD
+(por defecto admin@solsticio.com / Admin12345). En PowerShell:
+
+    $env:SOLSTICIO_EMAIL = "tu@correo.com"; $env:SOLSTICIO_PASSWORD = "tu-clave"
+
 Guarda cada petición y su respuesta en el JSON indicado (por defecto evidencias.json).
 """
-import json, sys, urllib.request
+import json, os, sys, urllib.request
 
 BASE = "http://127.0.0.1:5000"
 TOKEN = None
@@ -32,7 +37,14 @@ def call(nombre, metodo, ruta, cuerpo=None, token=True, guardar=True):
     return codigo, resp
 
 # --- Datos base en MySQL (flujo existente) ---
-c, r = call("login", "POST", "/api/v1/auth/login", {"email": "admin@solsticio.com", "password": "Admin12345"}, token=False)
+credenciales = {
+    "email": os.environ.get("SOLSTICIO_EMAIL", "admin@solsticio.com"),
+    "password": os.environ.get("SOLSTICIO_PASSWORD", "Admin12345"),
+}
+c, r = call("login", "POST", "/api/v1/auth/login", credenciales, token=False, guardar=False)
+if c != 200:
+    sys.exit(f"No se pudo iniciar sesión como {credenciales['email']}: {r}. "
+             "Defina SOLSTICIO_EMAIL y SOLSTICIO_PASSWORD con un usuario ADMINISTRADOR.")
 TOKEN = r["access_token"]
 call("cat", "POST", "/api/v1/categorias", {"nombre": "Camisetas", "descripcion": "Camisetas y polos"}, guardar=False)
 call("cat2", "POST", "/api/v1/categorias", {"nombre": "Jeans", "descripcion": "Pantalones de denim"}, guardar=False)

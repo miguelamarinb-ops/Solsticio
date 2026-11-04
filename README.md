@@ -330,6 +330,13 @@ También se puede recorrer todo el flujo con un script, con la API corriendo y l
 python scripts/flujo_demo_nosql.py
 ```
 
+Por defecto inicia sesión como `admin@solsticio.com` / `Admin12345`. Si tu administrador tiene otros datos, defínelos antes (PowerShell):
+
+```powershell
+$env:SOLSTICIO_EMAIL = "tu@correo.com"; $env:SOLSTICIO_PASSWORD = "tu-clave"
+python scripts/flujo_demo_nosql.py
+```
+
 ## Evidencias de pruebas
 
 Capturas de la colección ejecutada en Postman contra la API en local. Las imágenes están en `docs/imagenes/`.
