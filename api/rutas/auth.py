@@ -15,6 +15,7 @@ bp = Blueprint("auth", __name__)
 @bp.post("/auth/login")
 def login():
     usuario = usuarios.autenticar(leer_json())
+    g.usuario = usuario  # para que el inicio de sesión quede en la bitácora (MongoDB)
     token, segundos = crear_token(usuario)
     return jsonify({
         "access_token": token,

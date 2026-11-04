@@ -28,3 +28,6 @@ class Config:
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
     DIAN_SIMULACION = _booleano("DIAN_SIMULACION")
     PASARELA_SIMULACION = _booleano("PASARELA_SIMULACION")
+    MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+    MONGO_DB = os.environ.get("MONGO_DB", "solsticio")
+    MONGO_TIMEOUT_MS = int(os.environ.get("MONGO_TIMEOUT_MS", "2000"))

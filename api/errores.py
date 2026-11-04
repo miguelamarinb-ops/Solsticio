@@ -4,6 +4,7 @@ Excepción de dominio de la API y manejadores que convierten cualquier error
 en una respuesta JSON {"detail": "...", ...extra}.
 """
 from flask import jsonify
+from pymongo.errors import PyMongoError
 from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 from werkzeug.exceptions import HTTPException
 
@@ -50,6 +51,12 @@ def registrar_errores(app):
         db.session.rollback()
         app.logger.error("Error de base de datos: %s", error.orig)
         return jsonify({"detail": "No se pudo completar la operación en la base de datos"}), 503
+
+    @app.errorhandler(PyMongoError)
+    def error_mongo(error):
+        db.session.rollback()
+        app.logger.error("Error de MongoDB: %s", error)
+        return jsonify({"detail": "La base de datos documental (MongoDB) no está disponible"}), 503
 
     @app.errorhandler(HTTPException)
     def error_http(error):

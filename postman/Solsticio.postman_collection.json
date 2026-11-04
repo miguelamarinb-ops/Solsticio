@@ -22,6 +22,10 @@
     {
       "key": "token",
       "value": ""
+    },
+    {
+      "key": "id_resena",
+      "value": ""
     }
   ],
   "item": [
@@ -1029,6 +1033,518 @@
                 }
               }
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fichas técnicas (MongoDB)",
+      "item": [
+        {
+          "name": "PUT /api/v1/productos/1/ficha",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1/ficha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1",
+                "ficha"
+              ]
+            },
+            "description": "Crea o reemplaza (upsert) la ficha técnica del producto en la colección fichas_producto. Los atributos son libres y anidables: cada tipo de prenda guarda solo los suyos. Valida en MySQL que el producto exista. Incrementa 'version'. Solo ADMINISTRADOR.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"atributos\": {\n    \"material\": \"Algodón\",\n    \"composicion\": [\n      {\n        \"fibra\": \"algodón peinado\",\n        \"porcentaje\": 100\n      }\n    ],\n    \"gramaje_gsm\": 220,\n    \"cuello\": \"redondo\",\n    \"manga\": \"corta\",\n    \"fit\": \"oversize\"\n  },\n  \"cuidados\": [\n    \"Lavar a máquina en frío\",\n    \"No usar blanqueador\"\n  ],\n  \"etiquetas\": [\n    \"Verano\",\n    \"Básicos\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/productos/1/ficha",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1/ficha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1",
+                "ficha"
+              ]
+            },
+            "description": "Consulta la ficha técnica (MongoDB). 404 si el producto no tiene ficha.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/v1/productos/1/ficha",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1/ficha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1",
+                "ficha"
+              ]
+            },
+            "description": "Elimina la ficha técnica. 204. Solo ADMINISTRADOR."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reseñas (MongoDB)",
+      "item": [
+        {
+          "name": "POST /api/v1/productos/1/resenas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1/resenas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1",
+                "resenas"
+              ]
+            },
+            "description": "Publica una reseña (público). Si se envía codigo_pedido, se verifica en MySQL que el pedido esté pagado e incluya el producto y la reseña queda con compra_verificada = true. Un mismo email solo puede reseñar un producto una vez (409).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Andrés Rivera\",\n  \"email\": \"andres@correo.com\",\n  \"calificacion\": 5,\n  \"titulo\": \"Excelente calidad\",\n  \"comentario\": \"La tela es gruesa y no se transparenta.\",\n  \"id_variante\": 1,\n  \"ajuste_talla\": \"GRANDE\",\n  \"codigo_pedido\": \"SOL-P-00000001\",\n  \"atributos\": {\n    \"calidad_tela\": 5,\n    \"encoge\": false\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.id) { pm.collectionVariables.set('id_resena', d.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/v1/productos/1/resenas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1/resenas?orden=mejores&page=1&size=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1",
+                "resenas"
+              ],
+              "query": [
+                {
+                  "key": "orden",
+                  "value": "mejores"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lista las reseñas publicadas con paginación, orden (recientes|mejores|peores|utiles) y filtro opcional ?calificacion=. Incluye 'resumen' calculado con un pipeline de agregación ($facet): promedio, distribución de estrellas y opinión sobre la talla.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/resenas/{{id_resena}}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/resenas/{{id_resena}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "resenas",
+                "{{id_resena}}"
+              ]
+            },
+            "description": "Consulta una reseña publicada por su ObjectId.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/resenas/{{id_resena}}/util",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/resenas/{{id_resena}}/util",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "resenas",
+                "{{id_resena}}",
+                "util"
+              ]
+            },
+            "description": "Suma un voto de 'útil' con $inc (operación atómica).",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/v1/resenas/{{id_resena}}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/resenas/{{id_resena}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "resenas",
+                "{{id_resena}}"
+              ]
+            },
+            "description": "Moderación (ADMINISTRADOR): cambia estado (PUBLICADA|OCULTA) y/o agrega una respuesta de la tienda con $push al arreglo embebido 'respuestas'.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"respuesta\": \"¡Gracias por tu compra!\",\n  \"estado\": \"PUBLICADA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/v1/resenas/{{id_resena}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/resenas/{{id_resena}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "resenas",
+                "{{id_resena}}"
+              ]
+            },
+            "description": "Elimina la reseña. 204. Solo ADMINISTRADOR."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Combinados SQL + NoSQL",
+      "item": [
+        {
+          "name": "GET /api/v1/auth/perfil/actividad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/perfil/actividad?limite=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "perfil",
+                "actividad"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Perfil del usuario autenticado leído de MySQL junto a sus últimas 10 actividades y un resumen por acción, leídos de MongoDB (actividad_usuario)."
+          }
+        },
+        {
+          "name": "GET /api/v1/usuarios/1/actividad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/usuarios/1/actividad",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "1",
+                "actividad"
+              ]
+            },
+            "description": "Lo mismo para cualquier usuario. Solo ADMINISTRADOR."
+          }
+        },
+        {
+          "name": "GET /api/v1/productos/1/completo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/1/completo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "1",
+                "completo"
+              ]
+            },
+            "description": "Vista 360° del producto: precio, variantes y stock por sede (MySQL) + ficha técnica, resumen y últimas reseñas, escaneos QR de 30 días (MongoDB). Si MongoDB no responde devuelve la parte de MySQL con nosql_disponible = false.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/productos/buscar-atributos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/productos/buscar-atributos?atributos.material=algodon&etiqueta=verano",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "buscar-atributos"
+              ],
+              "query": [
+                {
+                  "key": "atributos.material",
+                  "value": "algodon"
+                },
+                {
+                  "key": "etiqueta",
+                  "value": "verano"
+                }
+              ]
+            },
+            "description": "Filtra en MongoDB por atributos que no existen como columnas (insensible a tildes y mayúsculas) y devuelve los productos con precio y stock vigentes de MySQL.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/reportes/qr-mas-escaneados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/reportes/qr-mas-escaneados?dias=30&limite=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reportes",
+                "qr-mas-escaneados"
+              ],
+              "query": [
+                {
+                  "key": "dias",
+                  "value": "30"
+                },
+                {
+                  "key": "limite",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Ranking de variantes más escaneadas (agregación en escaneos_qr) enriquecido con descripción, precio y stock desde MySQL. Solo ADMINISTRADOR."
+          }
+        },
+        {
+          "name": "GET /api/v1/actividad",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/actividad?accion=INICIO_SESION&page=1&size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "actividad"
+              ],
+              "query": [
+                {
+                  "key": "accion",
+                  "value": "INICIO_SESION"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Bitácora de actividad (MongoDB) con filtros id_usuario, accion, exito, desde, hasta. Solo ADMINISTRADOR."
           }
         }
       ]

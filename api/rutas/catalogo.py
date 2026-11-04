@@ -2,16 +2,18 @@
 catalogo.py
 Consultas públicas del catálogo: categorías, sedes, productos, variantes y QR.
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from api.errores import ErrorApi
 from api.modelos import Categoria, Color, Genero, Producto, Talla, Variante, db
+from api.seguridad import auth_opcional
 from api.serializadores import (
     categoria_dict, disponibilidad_detallada, producto_detalle, producto_resumen, sede_dict,
     sedes_activas, variante_por_qr,
 )
+from api.servicios import actividad
 from api.validacion import a_enum, arg_entero
 
 bp = Blueprint("catalogo", __name__)
@@ -85,9 +87,15 @@ def obtener_producto(id_producto):
 
 
 @bp.get("/variantes/qr/<codigo_qr>")
+@auth_opcional
 def resolver_qr_variante(codigo_qr):
     variante = db.session.scalars(select(Variante).where(Variante.codigo_qr == codigo_qr)).first()
-    if variante is None or not variante.activo:
+    if variante is not None and not variante.activo:
+        variante = None
+    # Cada lectura del QR (encontrada o no) se guarda en MongoDB: escaneos_qr.
+    id_sede = arg_entero("sede", minimo=1) or (g.usuario.id_sede if g.usuario else None)
+    actividad.registrar_escaneo(codigo_qr, variante, g.usuario, id_sede)
+    if variante is None:
         raise ErrorApi(404, "El código QR no corresponde a ninguna referencia registrada")
     return jsonify(variante_por_qr(variante, sedes_activas()))
 

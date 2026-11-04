@@ -1,10 +1,14 @@
 """
 comandos.py
-Comandos de consola:  flask --app app verificar-bd  |  flask --app app crear-admin
+Comandos de consola:  flask --app app verificar-bd  |  flask --app app verificar-mongo
+                      flask --app app crear-admin
 """
 import click
 from sqlalchemy import text
 
+from pymongo.errors import PyMongoError
+
+from api import nosql
 from api.errores import ErrorApi
 from api.modelos import db
 from api.seguridad import ADMINISTRADOR
@@ -19,6 +23,19 @@ def registrar_comandos(app):
             "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()"
         )).scalar()
         click.echo(f"Conexión correcta. Tablas en la base de datos: {tablas}")
+
+    @app.cli.command("verificar-mongo")
+    def verificar_mongo():
+        """Comprueba la conexión a MongoDB, crea los índices y cuenta documentos por colección."""
+        base = app.extensions["mongo"]
+        try:
+            version = base.command("buildInfo")["version"]
+            nosql.crear_indices(base)
+        except PyMongoError as error:
+            raise click.ClickException(f"No se pudo conectar a MongoDB: {error}") from None
+        click.echo(f"Conexión correcta a MongoDB {version}, base '{base.name}'.")
+        for nombre in nosql.INDICES:
+            click.echo(f"  {nombre}: {base[nombre].estimated_document_count()} documentos")
 
     @app.cli.command("crear-admin")
     @click.option("--email", prompt=True)
