@@ -798,4 +798,4 @@ Flujo de una petición: **ruta** (valida permisos y datos) → **servicio** (reg
 
 ## Autores
 
-Miguel Angel Marin Baracaldo · Joan Sebastian Lara Fuenmayor
+Miguel Ángel Marín Baracaldo · Joan Sebastian Lara Fuenmayor
