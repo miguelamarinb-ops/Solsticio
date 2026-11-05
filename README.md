@@ -375,6 +375,43 @@ Resultado esperado:
 47 passed
 ```
 
+## Recorrido de la interfaz (Playwright)
+
+Además de pytest, hay un recorrido automático que usa la página **como una persona, haciendo clic en Chrome**. Recorre 33 pasos:
+
+- **Administrador:**
+  - crear una prenda con tallas, colores y ficha técnica;
+  - imprimir etiquetas QR;
+  - registrar un ingreso y un ajuste de inventario;
+  - crear, despachar y recibir un traslado;
+  - vender en el mostrador;
+  - llevar pedidos por todos sus estados (preparar, enviar con guía, entregar, cobrar, cancelar);
+  - crear categorías, sedes y usuarios;
+  - moderar opiniones;
+  - revisar la bitácora, los reportes y "Mi perfil".
+- **Trabajador:** que el menú y los permisos se limiten a su sede.
+- **Tienda:** un pago rechazado que conserva el carrito y luego se paga bien.
+- **Celular** (390 px): que nada se desborde y que el menú del panel funcione con el teclado.
+
+Corre sobre bases aparte llamadas `solsticio_e2e` y una API en el puerto 5001, así que **no toca tus datos de desarrollo**. En PowerShell, desde la carpeta del proyecto:
+
+```powershell
+pip install -r requirements-dev.txt
+.\e2e\preparar_entorno.ps1          # crea solsticio_e2e, carga el catálogo y levanta la API en :5001
+python e2eecorrido_interfaz.py     # corre los 33 pasos
+.\e2eorrar_entorno.ps1            # apaga la API de pruebas y borra las bases solsticio_e2e
+```
+
+- **Navegador:** usa el Chrome instalado. Si no lo tienes, ejecuta `python -m playwright install chromium` y corre el recorrido con `$env:E2E_CANAL="chromium"`.
+- **Capturas:** guarda una de cada paso, con un `resultados.json`, en `e2e/resultados/` (esa carpeta no se sube a git).
+- **Resultado:** termina con código 1 si algún paso falla. El resultado esperado es:
+
+```
+33 de 33 pasos OK
+```
+
+Lo único que no cubre es la lectura del QR con la cámara, que se prueba desde un celular Android.
+
 ## Evidencias de pruebas
 
 Capturas de la colección ejecutada en Postman contra la API en local. Las imágenes están en `docs/imagenes/`.
@@ -754,7 +791,7 @@ El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pesta�
 ```
 app.py                     # punto de entrada: python app.py / gunicorn app:app
 requirements.txt
-requirements-dev.txt       # dependencias de desarrollo (pytest)
+requirements-dev.txt       # dependencias de desarrollo (pytest y Playwright)
 pytest.ini
 .env.example               # plantilla de variables de entorno (.env no se versiona)
 api/
@@ -791,6 +828,8 @@ scripts/
   flujo_demo_nosql.py      # recorre todos los endpoints NoSQL y combinados
 tests/                     # pruebas automáticas con pytest (MySQL + MongoDB reales)
   conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py  test_web.py  test_panel_api.py
+e2e/                       # recorrido de la interfaz con Playwright (bases solsticio_e2e)
+  preparar_entorno.ps1  recorrido_interfaz.py  borrar_entorno.ps1  comun.ps1
 web/                       # interfaz (HTML + CSS + JS) servida por Flask
   index.html  producto.html  escanear.html  carrito.html  panel.html
   recursos/css/            # estilos.css (tienda y base), panel.css

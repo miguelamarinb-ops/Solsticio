@@ -17,3 +17,6 @@ instance/
 
 # Pruebas
 .pytest_cache/
+
+# Capturas del recorrido de la interfaz
+e2e/resultados/
