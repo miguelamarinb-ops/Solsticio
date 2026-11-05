@@ -32,7 +32,7 @@ Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los da
 | Framework | Flask 3.0 |
 | ORM | Flask-SQLAlchemy 3.1 / SQLAlchemy 2.0 |
 | Base de datos relacional | MySQL 8.0 (driver PyMySQL) |
-| Base de datos documental (NoSQL) | MongoDB 7 (driver PyMongo 4.10) |
+| Base de datos documental (NoSQL) | MongoDB 7 o superior, probado con 7.0 y 9.0 (driver PyMongo 4.10) |
 | Autenticación | JWT (PyJWT) + bcrypt |
 | Servidor de producción | Gunicorn |
 | Pruebas de endpoints | Postman |
@@ -246,7 +246,7 @@ flask --app app verificar-mongo
 ```
 
 ```
-Conexión correcta a MongoDB 7.0.x, base 'solsticio'.
+Conexión correcta a MongoDB 9.0.4, base 'solsticio'.
   actividad_usuario: 0 documentos
   escaneos_qr: 0 documentos
   resenas_producto: 0 documentos
@@ -556,7 +556,37 @@ Si MongoDB está caído, `/productos/{id}/completo` responde igual con la parte 
 
 ### Evidencias de ejecución (Entrega 2)
 
-Capturas generadas al ejecutar `scripts/flujo_demo_nosql.py` contra la API en local (MySQL 8.0 + MongoDB 7.0), sobre bases recién creadas. Cada imagen muestra la petición enviada y la respuesta real de la API. Las imágenes están en `docs/imagenes/nosql/`.
+Hay dos juegos de evidencias:
+
+1. **Ejecución en un equipo local** (MySQL 8.0 + MongoDB 9.0, con el catálogo de ejemplo de `flask --app app sembrar-demo`). Son las mismas figuras del [documento PDF](docs/Entrega2_NoSQL_Solsticio.pdf) y están en `docs/imagenes/entrega2/`.
+2. **Respuestas de la API, endpoint por endpoint**, generadas con `scripts/flujo_demo_nosql.py` sobre bases recién creadas (MySQL 8.0 + MongoDB 7.0). Cada imagen muestra la petición enviada y la respuesta real. Están en `docs/imagenes/nosql/`.
+
+#### 1. Ejecución en local
+
+**Conexión a ambas bases y las 47 pruebas automáticas**
+
+![Verificación y pruebas](docs/imagenes/entrega2/66-terminal-verificacion-pruebas.png)
+
+**Documentos e índices consultados directamente en MongoDB con PyMongo**
+
+![Documentos e índices en MongoDB](docs/imagenes/entrega2/67-mongodb-documentos-indices.png)
+
+**Endpoint combinado del enunciado: perfil (MySQL) y últimas acciones (MongoDB), en el panel**
+
+![Mi perfil](docs/imagenes/entrega2/62-panel-perfil-actividad.png)
+
+**Detalle de una prenda: stock por sede (MySQL), ficha técnica y opiniones (MongoDB)**
+
+![Detalle con stock](docs/imagenes/entrega2/61-tienda-detalle-stock.png)
+![Ficha técnica y opiniones](docs/imagenes/entrega2/60-tienda-ficha-opiniones.png)
+
+**Reporte de QR, bitácora y moderación de opiniones**
+
+![Prendas más escaneadas](docs/imagenes/entrega2/64-panel-qr-mas-escaneados.png)
+![Bitácora](docs/imagenes/entrega2/63-panel-bitacora.png)
+![Moderación de opiniones](docs/imagenes/entrega2/65-panel-moderacion-opiniones.png)
+
+#### 2. Respuestas de la API
 
 **Conexión y datos guardados en MongoDB**
 
