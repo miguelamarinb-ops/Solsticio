@@ -750,8 +750,10 @@ database/
 docs/
   Entrega2_NoSQL_Solsticio.pdf   # documento de la Entrega 2 (estructura NoSQL y justificación)
   imagenes/                # capturas de las pruebas en Postman
-    nosql/                 # evidencias de la Entrega 2 (MongoDB)
+    nosql/                 # evidencias de la Entrega 2 (respuestas de la API)
+    entrega2/              # evidencias del PDF (interfaz, terminal y pruebas)
   diagramas/               # diagramas de casos de uso
+    entrega2/              # arquitectura y modelo de datos del PDF (HTML editable + PNG)
   Solsticio_Modelo_Datos.md, solsticio_dbdiagram.dbml
 postman/
   Solsticio.postman_collection.json

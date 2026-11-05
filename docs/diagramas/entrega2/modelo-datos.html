@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solsticio · modelo de datos políglota</title>
+  <!-- Estilo del documento de la Entrega 2: fondo blanco, texto negro, Calibri y los
+       verdes de las tablas (#A8D08D encabezado, #E2EFD9 cuerpo, #548235 foco). -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper: #ffffff;
+      --color-ink: #000000;
+      --color-muted: #404040;
+      --color-accent: #548235;
+      --font-sans: Calibri, Carlito, "Segoe UI", sans-serif;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); padding: 2rem; }
+    .frame { max-width: 1000px; margin: 0 auto; }
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 1rem; }
+    .diagram-container { overflow-x: auto; }
+    svg { width: 100%; min-width: 1000px; display: block; }
+    @media print { .diagram-container { overflow: visible; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h1>Modelo de datos: MySQL y MongoDB</h1>
+    <div class="diagram-container">
+    <svg viewBox="0 0 1000 690" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="modelo-datos-title modelo-datos-desc"
+         font-family="Calibri, Carlito, 'Segoe UI', sans-serif">
+      <title id="modelo-datos-title">Modelo de datos de Solsticio: MySQL y MongoDB</title>
+      <desc id="modelo-datos-desc">Las tablas usuario, producto y variante de MySQL se enlazan por identificador con las colecciones actividad_usuario, fichas_producto, resenas_producto y escaneos_qr de MongoDB.</desc>
+
+      <rect width="1000" height="690" fill="#ffffff"/>
+
+      <!-- Zonas por motor -->
+      <rect x="60" y="20" width="300" height="596" rx="8" fill="none" stroke="#A6A6A6" stroke-width="1" stroke-dasharray="5,4"/>
+      <text x="76" y="42" fill="#000000" font-size="12" font-weight="700" letter-spacing="0.08em">MYSQL · DATOS TRANSACCIONALES</text>
+      <rect x="540" y="20" width="420" height="596" rx="8" fill="none" stroke="#A6A6A6" stroke-width="1" stroke-dasharray="5,4"/>
+      <text x="556" y="42" fill="#000000" font-size="12" font-weight="700" letter-spacing="0.08em">MONGODB · DATOS DINÁMICOS Y DE ALTA FRECUENCIA</text>
+
+      <!-- Relaciones (se dibujan antes que las cajas) -->
+      <line x1="340" y1="116" x2="560" y2="116" stroke="#404040" stroke-width="1.2"/>
+      <path d="M 340,308 H 442 Q 450,308 450,300 V 264 Q 450,256 458,256 H 560" fill="none" stroke="#548235" stroke-width="1.6"/>
+      <path d="M 340,344 H 442 Q 450,344 450,352 V 388 Q 450,396 458,396 H 560" fill="none" stroke="#404040" stroke-width="1.2"/>
+      <line x1="210" y1="382" x2="210" y2="480" stroke="#404040" stroke-width="1.2"/>
+      <line x1="340" y1="536" x2="560" y2="536" stroke="#404040" stroke-width="1.2"/>
+
+      <!-- Etiquetas de relación (con máscara y separación de la línea) -->
+      <rect x="400" y="92" width="100" height="14" rx="2" fill="#ffffff"/>
+      <text x="450" y="103" fill="#000000" font-size="11" text-anchor="middle" letter-spacing="0.06em">ID_USUARIO</text>
+      <rect x="470" y="232" width="80" height="14" rx="2" fill="#ffffff"/>
+      <text x="510" y="243" fill="#548235" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="0.06em">_ID</text>
+      <rect x="452" y="404" width="84" height="14" rx="2" fill="#ffffff"/>
+      <text x="494" y="415" fill="#000000" font-size="11" text-anchor="middle" letter-spacing="0.04em">ID_PRODUCTO</text>
+      <rect x="220" y="424" width="92" height="14" rx="2" fill="#ffffff"/>
+      <text x="266" y="435" fill="#000000" font-size="11" text-anchor="middle" letter-spacing="0.06em">ID_PRODUCTO</text>
+      <rect x="400" y="512" width="100" height="14" rx="2" fill="#ffffff"/>
+      <text x="450" y="523" fill="#000000" font-size="11" text-anchor="middle" letter-spacing="0.06em">ID_VARIANTE</text>
+
+      <!-- Cardinalidades -->
+      <g font-size="12" font-weight="700" text-anchor="middle" fill="#000000">
+        <rect x="346" y="108" width="12" height="16" fill="#ffffff"/><text x="352" y="120">1</text>
+        <rect x="540" y="108" width="14" height="16" fill="#ffffff"/><text x="547" y="120">N</text>
+        <rect x="346" y="300" width="12" height="16" fill="#ffffff"/><text x="352" y="312">1</text>
+        <rect x="541" y="248" width="12" height="16" fill="#ffffff"/><text x="547" y="260" fill="#548235">1</text>
+        <rect x="346" y="336" width="12" height="16" fill="#ffffff"/><text x="352" y="348">1</text>
+        <rect x="540" y="388" width="14" height="16" fill="#ffffff"/><text x="547" y="400">N</text>
+        <rect x="204" y="386" width="12" height="16" fill="#ffffff"/><text x="210" y="398">1</text>
+        <rect x="203" y="460" width="14" height="16" fill="#ffffff"/><text x="210" y="472">N</text>
+        <rect x="346" y="528" width="12" height="16" fill="#ffffff"/><text x="352" y="540">1</text>
+        <rect x="540" y="528" width="14" height="16" fill="#ffffff"/><text x="547" y="540">N</text>
+      </g>
+
+      <!-- ===================== Tablas MySQL ===================== -->
+      <g>
+        <rect x="80" y="60" width="260" height="112" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+        <path d="M 86,60 H 334 Q 340,60 340,66 V 100 H 80 V 66 Q 80,60 86,60 Z" fill="#EDEDED"/>
+        <line x1="80" y1="100" x2="340" y2="100" stroke="#A6A6A6"/>
+        <text x="96" y="76" fill="#404040" font-size="10" letter-spacing="0.12em">TABLA</text>
+        <text x="96" y="93" fill="#000000" font-size="16" font-weight="700">usuario</text>
+        <text x="96" y="120" font-size="12.5"># id_usuario</text><text x="324" y="120" fill="#404040" font-size="12.5" text-anchor="end">int</text>
+        <text x="96" y="140" font-size="12.5">email, nombres</text><text x="324" y="140" fill="#404040" font-size="12.5" text-anchor="end">varchar</text>
+        <text x="96" y="160" font-size="12.5">→ id_rol, id_sede</text><text x="324" y="160" fill="#404040" font-size="12.5" text-anchor="end">int</text>
+      </g>
+      <g>
+        <rect x="80" y="270" width="260" height="112" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+        <path d="M 86,270 H 334 Q 340,270 340,276 V 310 H 80 V 276 Q 80,270 86,270 Z" fill="#EDEDED"/>
+        <line x1="80" y1="310" x2="340" y2="310" stroke="#A6A6A6"/>
+        <text x="96" y="286" fill="#404040" font-size="10" letter-spacing="0.12em">TABLA</text>
+        <text x="96" y="303" fill="#000000" font-size="16" font-weight="700">producto</text>
+        <text x="96" y="330" font-size="12.5"># id_producto</text><text x="324" y="330" fill="#404040" font-size="12.5" text-anchor="end">int</text>
+        <text x="96" y="350" font-size="12.5">nombre, precio_base</text><text x="324" y="350" fill="#404040" font-size="12.5" text-anchor="end">varchar, decimal</text>
+        <text x="96" y="370" font-size="12.5">→ id_categoria</text><text x="324" y="370" fill="#404040" font-size="12.5" text-anchor="end">int</text>
+      </g>
+      <g>
+        <rect x="80" y="480" width="260" height="112" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+        <path d="M 86,480 H 334 Q 340,480 340,486 V 520 H 80 V 486 Q 80,480 86,480 Z" fill="#EDEDED"/>
+        <line x1="80" y1="520" x2="340" y2="520" stroke="#A6A6A6"/>
+        <text x="96" y="496" fill="#404040" font-size="10" letter-spacing="0.12em">TABLA</text>
+        <text x="96" y="513" fill="#000000" font-size="16" font-weight="700">variante</text>
+        <text x="96" y="540" font-size="12.5"># id_variante</text><text x="324" y="540" fill="#404040" font-size="12.5" text-anchor="end">int</text>
+        <text x="96" y="560" font-size="12.5">→ id_producto, talla, color</text><text x="324" y="560" fill="#404040" font-size="12.5" text-anchor="end">int</text>
+        <text x="96" y="580" font-size="12.5">codigo_qr</text><text x="324" y="580" fill="#404040" font-size="12.5" text-anchor="end">SOL-V-000001</text>
+      </g>
+
+      <!-- ===================== Colecciones MongoDB ===================== -->
+      <g>
+        <rect x="560" y="60" width="380" height="112" rx="6" fill="#E2EFD9" stroke="#000000" stroke-width="1"/>
+        <path d="M 566,60 H 934 Q 940,60 940,66 V 100 H 560 V 66 Q 560,60 566,60 Z" fill="#A8D08D"/>
+        <line x1="560" y1="100" x2="940" y2="100" stroke="#A6A6A6"/>
+        <text x="576" y="76" fill="#000000" font-size="10" letter-spacing="0.12em">COLECCIÓN</text>
+        <text x="576" y="93" fill="#000000" font-size="16" font-weight="700">actividad_usuario</text>
+        <text x="576" y="120" font-size="12.5">→ id_usuario</text><text x="924" y="120" fill="#404040" font-size="12.5" text-anchor="end">int (MySQL)</text>
+        <text x="576" y="140" font-size="12.5">accion, ruta, estado_http</text><text x="924" y="140" fill="#404040" font-size="12.5" text-anchor="end">campos según la acción</text>
+        <text x="576" y="160" font-size="12.5">fecha</text><text x="924" y="160" fill="#404040" font-size="12.5" text-anchor="end">date, TTL 180 días</text>
+      </g>
+      <g>
+        <rect x="560" y="200" width="380" height="112" rx="6" fill="#E2EFD9" stroke="#548235" stroke-width="2.4"/>
+        <path d="M 566,200 H 934 Q 940,200 940,206 V 240 H 560 V 206 Q 560,200 566,200 Z" fill="#A8D08D"/>
+        <line x1="560" y1="240" x2="940" y2="240" stroke="#548235"/>
+        <text x="576" y="216" fill="#000000" font-size="10" font-weight="700" letter-spacing="0.12em">COLECCIÓN · ATRIBUTOS VARIABLES</text>
+        <text x="576" y="233" fill="#000000" font-size="16" font-weight="700">fichas_producto</text>
+        <text x="576" y="260" font-size="12.5"># _id = id_producto</text><text x="924" y="260" fill="#404040" font-size="12.5" text-anchor="end">int (MySQL), 1 a 1</text>
+        <text x="576" y="280" font-size="12.5">atributos</text><text x="924" y="280" fill="#404040" font-size="12.5" text-anchor="end">objeto libre por tipo de prenda</text>
+        <text x="576" y="300" font-size="12.5">cuidados, etiquetas, version</text><text x="924" y="300" fill="#404040" font-size="12.5" text-anchor="end">arreglos, int</text>
+      </g>
+      <g>
+        <rect x="560" y="340" width="380" height="112" rx="6" fill="#E2EFD9" stroke="#000000" stroke-width="1"/>
+        <path d="M 566,340 H 934 Q 940,340 940,346 V 380 H 560 V 346 Q 560,340 566,340 Z" fill="#A8D08D"/>
+        <line x1="560" y1="380" x2="940" y2="380" stroke="#A6A6A6"/>
+        <text x="576" y="356" fill="#000000" font-size="10" letter-spacing="0.12em">COLECCIÓN</text>
+        <text x="576" y="373" fill="#000000" font-size="16" font-weight="700">resenas_producto</text>
+        <text x="576" y="400" font-size="12.5">→ id_producto</text><text x="924" y="400" fill="#404040" font-size="12.5" text-anchor="end">int (MySQL)</text>
+        <text x="576" y="420" font-size="12.5">autor, calificacion, atributos</text><text x="924" y="420" fill="#404040" font-size="12.5" text-anchor="end">objeto, 1 a 5, objeto</text>
+        <text x="576" y="440" font-size="12.5">respuestas</text><text x="924" y="440" fill="#404040" font-size="12.5" text-anchor="end">arreglo embebido</text>
+      </g>
+      <g>
+        <rect x="560" y="480" width="380" height="112" rx="6" fill="#E2EFD9" stroke="#000000" stroke-width="1"/>
+        <path d="M 566,480 H 934 Q 940,480 940,486 V 520 H 560 V 486 Q 560,480 566,480 Z" fill="#A8D08D"/>
+        <line x1="560" y1="520" x2="940" y2="520" stroke="#A6A6A6"/>
+        <text x="576" y="496" fill="#000000" font-size="10" letter-spacing="0.12em">COLECCIÓN</text>
+        <text x="576" y="513" fill="#000000" font-size="16" font-weight="700">escaneos_qr</text>
+        <text x="576" y="540" font-size="12.5">→ id_variante</text><text x="924" y="540" fill="#404040" font-size="12.5" text-anchor="end">int (MySQL), opcional</text>
+        <text x="576" y="560" font-size="12.5">codigo_qr, canal, encontrado</text><text x="924" y="560" fill="#404040" font-size="12.5" text-anchor="end">WEB o TIENDA, bool</text>
+        <text x="576" y="580" font-size="12.5">fecha</text><text x="924" y="580" fill="#404040" font-size="12.5" text-anchor="end">date, TTL 365 días</text>
+      </g>
+
+      <!-- Leyenda (franja inferior) -->
+      <line x1="60" y1="636" x2="960" y2="636" stroke="#A6A6A6" stroke-width="0.8"/>
+      <text x="60" y="656" fill="#000000" font-size="10.5" font-weight="700" letter-spacing="0.14em">LEYENDA</text>
+      <g font-size="12" fill="#000000">
+        <rect x="60" y="666" width="16" height="12" rx="2" fill="#EDEDED" stroke="#000000"/><text x="82" y="677">Tabla MySQL</text>
+        <rect x="170" y="666" width="16" height="12" rx="2" fill="#A8D08D" stroke="#000000"/><text x="192" y="677">Colección MongoDB</text>
+        <rect x="320" y="666" width="16" height="12" rx="2" fill="#E2EFD9" stroke="#548235" stroke-width="2"/><text x="342" y="677">Foco: atributos variables</text>
+        <text x="510" y="677" font-weight="700">#</text><text x="524" y="677">Clave o _id</text>
+        <text x="610" y="677" font-weight="700">→</text><text x="626" y="677">Referencia por identificador</text>
+        <text x="800" y="677" font-weight="700">1 / N</text><text x="836" y="677">Cardinalidad</text>
+      </g>
+    </svg>
+    </div>
+  </div>
+</body>
+</html>
