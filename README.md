@@ -4,7 +4,7 @@ API REST del sistema multisede de inventario y ventas **Solsticio**, una tienda 
 
 El sistema centraliza las existencias por sede, registra las ventas web y en tienda, y deja trazabilidad de cada movimiento de mercancía. También cubre los traslados entre sedes, los pagos y la facturación electrónica ante la DIAN (estos dos últimos, simulados).
 
-Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los datos estructurados y transaccionales, y **MongoDB** para la bitácora de actividad, los escaneos de códigos QR, las reseñas de productos y las fichas técnicas con atributos variables. Ver [Integración NoSQL (MongoDB)](#integración-nosql-mongodb). La justificación del modelo documental está en [`docs/Entrega2_NoSQL_Solsticio.pdf`](docs/Entrega2_NoSQL_Solsticio.pdf).
+Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los datos estructurados y transaccionales, y **MongoDB** para la bitácora de actividad, los escaneos de códigos QR, las reseñas de productos y las fichas técnicas con atributos variables. Ver [Integración NoSQL (MongoDB)](#integración-nosql-mongodb). La justificación del modelo documental está en [`docs/Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf`](docs/Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf).
 
 ## Contenido
 
@@ -534,7 +534,7 @@ Algunas respuestas son **409 Conflict** a propósito: las peticiones se ejecutar
 | Reseñas de productos (`resenas_producto`) | **MongoDB** | Texto libre, atributos opcionales que cambian por prenda, fotos y respuestas de la tienda **embebidas** en el mismo documento. |
 | Ficha técnica (`fichas_producto`) | **MongoDB** | Un jean, una camiseta y unos tenis no comparten atributos (tiro, gramaje, suela...). En MySQL serían columnas casi siempre vacías o un modelo EAV. |
 
-Los documentos se enlazan con MySQL por identificador (`id_usuario`, `id_producto`, `id_variante`); el `_id` de la ficha técnica **es** el `id_producto`. La explicación completa, con la estructura de cada colección y sus índices, está en [`docs/Entrega2_NoSQL_Solsticio.pdf`](docs/Entrega2_NoSQL_Solsticio.pdf).
+Los documentos se enlazan con MySQL por identificador (`id_usuario`, `id_producto`, `id_variante`); el `_id` de la ficha técnica **es** el `id_producto`. La explicación completa, con la estructura de cada colección y sus índices, está en [`docs/Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf`](docs/Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf).
 
 ### Ejemplos de documentos
 
@@ -595,7 +595,7 @@ Si MongoDB está caído, `/productos/{id}/completo` responde igual con la parte 
 
 Hay dos juegos de evidencias:
 
-1. **Ejecución en un equipo local** (MySQL 8.0 + MongoDB 9.0, con el catálogo de ejemplo de `flask --app app sembrar-demo`). Son las mismas figuras del [documento PDF](docs/Entrega2_NoSQL_Solsticio.pdf) y están en `docs/imagenes/entrega2/`.
+1. **Ejecución en un equipo local** (MySQL 8.0 + MongoDB 9.0, con el catálogo de ejemplo de `flask --app app sembrar-demo`). Son las mismas figuras del [documento PDF](docs/Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf) y están en `docs/imagenes/entrega2/`.
 2. **Respuestas de la API, endpoint por endpoint**, generadas con `scripts/flujo_demo_nosql.py` sobre bases recién creadas (MySQL 8.0 + MongoDB 7.0). Cada imagen muestra la petición enviada y la respuesta real. Están en `docs/imagenes/nosql/`.
 
 #### 1. Ejecución en local
@@ -815,7 +815,7 @@ api/
 database/
   solsticio_schema.sql     # script de creación de la base de datos (23 tablas)
 docs/
-  Entrega2_NoSQL_Solsticio.pdf   # documento de la Entrega 2 (estructura NoSQL y justificación)
+  Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf   # documento de la Entrega 2 (estructura NoSQL y justificación)
   imagenes/                # capturas de las pruebas en Postman
     nosql/                 # evidencias de la Entrega 2 (respuestas de la API)
     entrega2/              # evidencias del PDF (interfaz, terminal y pruebas)
