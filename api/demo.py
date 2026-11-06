@@ -128,7 +128,8 @@ def _uno(modelo, columna, valor):
     return db.session.scalars(select(modelo).where(columna == valor)).first()
 
 
-def sembrar(semilla=7):
+def sembrar(semilla=7, con_mongo=True):
+    """con_mongo=False carga solo la parte de MySQL (sin fichas ni opiniones)."""
     azar = random.Random(semilla)
     resumen = {"categorias": 0, "productos": 0, "variantes": 0, "ingresos": 0, "fichas": 0, "opiniones": 0}
     tallas = {t.valor: t.id_talla for t in db.session.scalars(select(Talla))}
@@ -186,11 +187,11 @@ def sembrar(semilla=7):
                     resumen["ingresos"] += 1
         db.session.commit()
 
-        if fichas.obtener_ficha(producto.id_producto) is None:
+        if con_mongo and fichas.obtener_ficha(producto.id_producto) is None:
             fichas.guardar_ficha(producto, ficha, SISTEMA)
             resumen["fichas"] += 1
 
-    for nombre, autor, email, nota, titulo, texto, ajuste, atributos in OPINIONES:
+    for nombre, autor, email, nota, titulo, texto, ajuste, atributos in (OPINIONES if con_mongo else ()):
         datos = {"nombre": autor, "email": email, "calificacion": nota, "comentario": texto}
         if titulo:
             datos["titulo"] = titulo

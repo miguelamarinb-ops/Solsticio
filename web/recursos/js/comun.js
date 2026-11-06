@@ -128,6 +128,19 @@ function escribir(clave, valor) {
 
 export const sedeGuardada = () => leer("solsticio.sede", null);
 
+// Sesión del cliente registrado (rol CLIENTE). Distinta de la del panel del
+// personal: el cliente la conserva entre visitas hasta que vence el token.
+export const sesionCliente = {
+  leer() {
+    const datos = leer("solsticio.cliente", null);
+    return datos && datos.expira > Date.now() ? datos : null;
+  },
+  guardar(token, usuario, segundos) {
+    escribir("solsticio.cliente", { token, usuario, expira: Date.now() + segundos * 1000 });
+  },
+  cerrar() { try { localStorage.removeItem("solsticio.cliente"); } catch { /* nada */ } },
+};
+
 // Carrito: [{id_variante, id_producto, nombre, talla, color, precio, imagen, cantidad}]
 export const carrito = {
   items: () => leer("solsticio.carrito", []),
@@ -177,6 +190,7 @@ export async function iniciarCabecera({ alCambiarSede, busqueda = "" } = {}) {
     el("div", { class: "selector-sede" }, el("label", { for: "sede" }, "Tu sede"), selector),
     el("nav", { class: "nav-tienda", "aria-label": "Tienda" },
       enlace("/escanear", "Escanear QR"),
+      enlace("/cuenta", sesionCliente.leer() ? "Mi cuenta" : "Entrar"),
       enlace("/carrito", "Carrito", el("span", { class: "contador", id: "contador-carrito", hidden: true }))),
   ));
   actualizarContadorCarrito();

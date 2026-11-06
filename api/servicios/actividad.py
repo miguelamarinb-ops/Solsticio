@@ -18,6 +18,9 @@ from api.serializadores import descripcion_variante, disponibilidad, precio_fina
 # Nombre legible de cada endpoint. Lo que no esté aquí se guarda con el nombre interno.
 ACCIONES = {
     "auth.login": "INICIO_SESION",
+    "auth.registro": "REGISTRO_CLIENTE",
+    "cuenta.mis_pedidos": "CONSULTA_MIS_PEDIDOS",
+    "cuenta.mi_pedido": "CONSULTA_MI_PEDIDO",
     "auth.perfil": "CONSULTA_PERFIL",
     "actividad.perfil_con_actividad": "CONSULTA_PERFIL_ACTIVIDAD",
     "actividad.actividad_de_usuario": "CONSULTA_ACTIVIDAD_USUARIO",

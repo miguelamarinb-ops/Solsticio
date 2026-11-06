@@ -8,6 +8,7 @@ Tienda (clientes):
     /producto?id=N    detalle de la prenda
     /escanear         lector del QR de la etiqueta
     /carrito          carrito y pago
+    /cuenta           registro, inicio de sesión y pedidos del cliente (rol CLIENTE)
 Panel (personal):
     /panel            ventas en tienda, pedidos, inventario, catálogo y administración
 Archivos:
@@ -24,6 +25,7 @@ PAGINAS = {
     "/producto": "producto.html",
     "/escanear": "escanear.html",
     "/carrito": "carrito.html",
+    "/cuenta": "cuenta.html",
     "/panel": "panel.html",
 }
 

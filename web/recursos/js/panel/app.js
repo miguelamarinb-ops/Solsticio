@@ -82,6 +82,12 @@ function pantallaLogin(mensaje) {
     boton.disabled = true;
     try {
       const r = await api("/auth/login", { metodo: "POST", cuerpo: datos });
+      if (r.usuario.rol === "CLIENTE") {
+        error.replaceChildren("El panel es solo para el personal. ",
+          el("a", { href: "/cuenta" }, "Entra a tu cuenta de cliente"), ".");
+        boton.disabled = false;
+        return;
+      }
       sesion.guardar(r.access_token, r.usuario, r.expira_en);
       await arrancar();
     } catch (e) {

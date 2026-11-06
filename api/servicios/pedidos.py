@@ -15,7 +15,7 @@ from api.modelos import (
     Canal, Cliente, DetallePedido, Envio, EstadoEnvio, EstadoPago, EstadoPedido, MetodoPago,
     Pago, Pedido, TipoDocumento, TipoEntrega, TipoMovimiento, db,
 )
-from api.seguridad import es_admin
+from api.seguridad import es_admin, es_cliente, es_personal
 from api.serializadores import precio_final
 from api.servicios.comun import (
     codigo_temporal, obtener_sede_activa, obtener_variante_activa, prefijo_ascii, separar_iva,
@@ -54,6 +54,8 @@ def crear_pedido(datos, usuario):
     if canal == Canal.TIENDA:
         if usuario is None:
             raise ErrorApi(401, "Las ventas en tienda requieren el token de un trabajador")
+        if not es_personal(usuario):
+            raise ErrorApi(403, "Solo el personal registra ventas en tienda")
         if es_admin(usuario):
             exigir(datos, "id_sede")
             id_sede = a_entero(datos["id_sede"], "id_sede", 1)
@@ -64,7 +66,8 @@ def crear_pedido(datos, usuario):
         tipo_entrega = a_enum(TipoEntrega, datos.get("tipo_entrega", "INMEDIATA"), "tipo_entrega")
         id_usuario = usuario.id_usuario
     else:
-        exigir(datos, "id_sede", "cliente")
+        # Con sesión de CLIENTE el comprador sale de su cuenta; sin sesión, del cuerpo.
+        exigir(datos, *(("id_sede",) if es_cliente(usuario) else ("id_sede", "cliente")))
         id_sede = a_entero(datos["id_sede"], "id_sede", 1)
         tipo_entrega = a_enum(TipoEntrega, datos.get("tipo_entrega", "RECOGER_EN_TIENDA"), "tipo_entrega")
         if tipo_entrega == TipoEntrega.INMEDIATA:
@@ -100,7 +103,12 @@ def crear_pedido(datos, usuario):
     if conflictos:
         raise ErrorApi(409, "Existencias insuficientes", conflictos=conflictos)
 
-    cliente = _resolver_cliente(datos["cliente"]) if datos.get("cliente") else None
+    if canal == Canal.WEB and es_cliente(usuario):
+        cliente = usuario.cliente
+        if cliente is None:
+            raise ErrorApi(409, "La cuenta no tiene ficha de cliente asociada")
+    else:
+        cliente = _resolver_cliente(datos["cliente"]) if datos.get("cliente") else None
     pedido = Pedido(
         id_cliente=cliente.id_cliente if cliente else None, id_sede=sede.id_sede,
         id_usuario=id_usuario, canal=canal, tipo_entrega=tipo_entrega,
@@ -179,7 +187,7 @@ def registrar_pago(pedido, datos, usuario):
         for detalle in pedido.detalles:
             registrar_movimiento(
                 id_sede=pedido.id_sede, variante=detalle.variante, tipo=TipoMovimiento.VENTA,
-                cantidad=-detalle.cantidad, usuario=usuario,
+                cantidad=-detalle.cantidad, usuario=usuario if es_personal(usuario) else None,
                 tipo_referencia="PEDIDO", id_referencia=pedido.id_pedido,
             )
         pedido.estado = EstadoPedido.PAGADO

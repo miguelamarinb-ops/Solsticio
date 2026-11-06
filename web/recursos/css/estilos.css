@@ -572,3 +572,26 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------------------------------------------------------------------
+   Cuenta del cliente (rol CLIENTE)
+   --------------------------------------------------------------------- */
+.acceso { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); align-items: start; }
+.cuenta__cabeza { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+.sesion-cliente { background: var(--fondo-apagado); border: 1px solid var(--linea); border-radius: var(--radio); padding: 1rem; margin: 0.5rem 0 1rem; }
+.sesion-cliente p { margin: 0.2rem 0; }
+.pedidos-cliente { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; }
+.pedido-cliente { background: var(--algodon); border: 1px solid var(--linea); border-radius: var(--radio); padding: 1.25rem; }
+.pedido-cliente__cabeza { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: flex-start; }
+.pedido-cliente__cabeza .subtitulo { margin: 0.2rem 0 0; }
+.pedido-cliente__qr { margin-top: 0.75rem; font-size: var(--t-s); }
+.pedido-cliente__qr summary { cursor: pointer; color: var(--azul); }
+.pedido-cliente__total { display: flex; justify-content: space-between; border-top: 1px solid var(--linea-suave); padding-top: 0.75rem; margin: 0.75rem 0 0; }
+.estado-pedido { font-size: var(--t-xs); font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--insignia-gris-fondo); color: var(--insignia-gris-texto); white-space: nowrap; }
+.estado-pedido--pagado, .estado-pedido--entregado { background: var(--insignia-verde-fondo); color: var(--insignia-verde-texto); }
+.estado-pedido--pendiente { background: var(--insignia-sol-fondo); color: var(--insignia-sol-texto); }
+.estado-pedido--preparando, .estado-pedido--enviado { background: var(--insignia-azul-fondo); color: var(--insignia-azul-texto); }
+.estado-pedido--cancelado { background: var(--insignia-rojo-fondo); color: var(--insignia-rojo-texto); }
+.acceso .campos { grid-template-columns: 1fr; }
+.acceso .campo input, .acceso .campo select { width: 100%; min-width: 0; box-sizing: border-box; }
+.acceso .formulario h2 { margin-top: 0; }

@@ -60,6 +60,12 @@ def usuario_dict(usuario):
         "rol": usuario.rol.nombre,
         "sede": sede_corta(usuario.sede),
         "activo": usuario.activo,
+        "cliente": {
+            "id_cliente": usuario.cliente.id_cliente,
+            "tipo_documento": usuario.cliente.tipo_documento,
+            "telefono": usuario.cliente.telefono,
+            "direccion": usuario.cliente.direccion,
+        } if usuario.cliente else None,
     }
 
 
