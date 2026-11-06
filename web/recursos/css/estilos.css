@@ -595,3 +595,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .acceso .campos { grid-template-columns: 1fr; }
 .acceso .campo input, .acceso .campo select { width: 100%; min-width: 0; box-sizing: border-box; }
 .acceso .formulario h2 { margin-top: 0; }
+.pedido-cliente__devolucion { margin-top: 0.75rem; }
+.devolucion { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
+.devolucion .campo select, .devolucion .campo input { width: 100%; box-sizing: border-box; }
+.devolucion__control { display: flex; gap: 0.5rem; align-items: center; }
+.devolucion__control input { width: 4.5rem; }

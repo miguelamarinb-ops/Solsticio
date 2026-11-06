@@ -13,6 +13,9 @@ const RUTAS = [
   ["pedidos/:id", "pedido", false],
   ["inventario", "inventario", false],
   ["inventario/:vista", "inventario", false],
+  ["devoluciones", "devoluciones", false],
+  ["devoluciones/nueva", "devolucion-nueva", false],
+  ["devoluciones/:id", "devolucion", false],
   ["traslados", "traslados", false],
   ["traslados/nuevo", "traslado-nuevo", true],
   ["traslados/:id", "traslado", false],
@@ -29,7 +32,7 @@ const RUTAS = [
 ];
 
 const MENU = [
-  ["Operación", [["#/", "Inicio"], ["#/mostrador", "Mostrador"], ["#/pedidos", "Pedidos"], ["#/inventario", "Inventario"], ["#/traslados", "Traslados"]]],
+  ["Operación", [["#/", "Inicio"], ["#/mostrador", "Mostrador"], ["#/pedidos", "Pedidos"], ["#/devoluciones", "Devoluciones"], ["#/inventario", "Inventario"], ["#/traslados", "Traslados"]]],
   ["Catálogo", [["#/productos", "Prendas", true], ["#/maestros", "Categorías y sedes", true], ["#/opiniones", "Opiniones", true]]],
   ["Administración", [["#/usuarios", "Usuarios", true], ["#/bitacora", "Bitácora", true], ["#/reportes", "Reportes", true]]],
 ];

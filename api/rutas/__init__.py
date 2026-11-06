@@ -8,6 +8,7 @@ from api.rutas.admin import bp as admin_bp
 from api.rutas.auth import bp as auth_bp
 from api.rutas.catalogo import bp as catalogo_bp
 from api.rutas.cuenta import bp as cuenta_bp
+from api.rutas.devoluciones import bp as devoluciones_bp
 from api.rutas.fichas import bp as fichas_bp
 from api.rutas.inventario import bp as inventario_bp
 from api.rutas.pedidos import bp as pedidos_bp
@@ -21,6 +22,7 @@ PREFIJO_API = "/api/v1"
 def registrar_rutas(app):
     blueprints = (
         auth_bp, catalogo_bp, inventario_bp, pedidos_bp, admin_bp, cuenta_bp,  # MySQL
+        devoluciones_bp,
         actividad_bp, resenas_bp, fichas_bp,                        # MongoDB + MySQL
     )
     for blueprint in blueprints:

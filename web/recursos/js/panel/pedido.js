@@ -86,6 +86,7 @@ export async function render(principal, ctx, { id }) {
     ...siguientes(pedido).filter((e) => e !== "CANCELADO").map((e) =>
       el("button", { class: "boton", type: "button", onclick: () => cambiarEstado(e) }, VERBOS[e])),
     facturable ? el("button", { class: "boton boton--secundario", type: "button", onclick: facturar }, pedido.factura ? "Reintentar factura" : "Emitir factura") : null,
+    pagado && pedido.estado !== "CANCELADO" ? el("a", { class: "boton boton--secundario", href: `#/devoluciones/nueva?codigo=${encodeURIComponent(pedido.codigo_qr)}` }, "Registrar devolución o cambio") : null,
     siguientes(pedido).includes("CANCELADO") ? el("button", { class: "boton boton--peligro-texto", type: "button", onclick: () => cambiarEstado("CANCELADO") }, "Cancelar pedido") : null,
   ].filter(Boolean);
 

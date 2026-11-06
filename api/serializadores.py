@@ -306,6 +306,7 @@ def detalle_pedido_dict(detalle):
     return {
         "id_detalle_pedido": detalle.id_detalle_pedido,
         "id_variante": detalle.id_variante,
+        "id_producto": detalle.variante.id_producto,
         "sku": detalle.variante.sku,
         "descripcion": descripcion_variante(detalle.variante),
         "cantidad": detalle.cantidad,
@@ -428,4 +429,57 @@ def pedido_por_qr(pedido):
         },
         "accion_sugerida": accion_sugerida(pedido),
         "fecha_pedido": pedido.fecha_pedido,
+    }
+
+
+# =====================================================================
+# DEVOLUCIONES Y CAMBIOS
+# =====================================================================
+
+def nota_credito_dict(nota):
+    if nota is None:
+        return None
+    return {
+        "id_nota_credito": nota.id_nota_credito,
+        "numero_nota": nota.numero_nota,
+        "id_factura": nota.id_factura,
+        "cude": nota.cude,
+        "monto": nota.monto,
+        "estado_dian": nota.estado_dian,
+        "fecha_emision": nota.fecha_emision,
+    }
+
+
+def devolucion_dict(devolucion, movimientos=()):
+    items = []
+    for d in devolucion.detalles:
+        linea = d.detalle_pedido
+        cambio = d.variante_cambio
+        items.append({
+            "id_detalle_pedido": linea.id_detalle_pedido,
+            "devuelto": {"id_variante": linea.id_variante, "sku": linea.variante.sku,
+                         "descripcion": descripcion_variante(linea.variante),
+                         "cantidad": d.cantidad, "precio_unitario": linea.precio_unitario},
+            "entregado": {"id_variante": cambio.id_variante, "sku": cambio.sku,
+                          "descripcion": descripcion_variante(cambio),
+                          "cantidad": d.cantidad, "precio_unitario": precio_final(cambio)} if cambio else None,
+            "diferencia_precio": (precio_final(cambio) - linea.precio_unitario) * d.cantidad if cambio else None,
+        })
+    return {
+        "id_devolucion": devolucion.id_devolucion,
+        "id_pedido": devolucion.id_pedido,
+        "codigo_pedido": devolucion.pedido.codigo_qr,
+        "tipo": devolucion.tipo,
+        "estado": devolucion.estado,
+        "motivo": devolucion.motivo,
+        "sede": sede_corta(devolucion.sede),
+        "cliente": cliente_dict(devolucion.pedido.cliente),
+        "gestionado_por": nombre_completo(devolucion.usuario),
+        "items": items,
+        "movimientos_generados": [
+            {"id_movimiento": m.id_movimiento, "tipo": m.tipo, "id_variante": m.id_variante,
+             "cantidad": m.cantidad} for m in movimientos
+        ],
+        "nota_credito": nota_credito_dict(devolucion.nota_credito),
+        "fecha_solicitud": devolucion.fecha_solicitud,
     }

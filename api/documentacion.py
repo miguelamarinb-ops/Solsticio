@@ -56,6 +56,42 @@ ENDPOINTS = {
         d="Seguimiento de un pedido propio. Un pedido ajeno responde 404 para no revelar que existe.",
         e={404: "El pedido no existe o no es del cliente"}),
 
+    "cuenta.solicitar_devolucion": dict(
+        t="Cuenta del cliente", r="Solicitar devolución o cambio",
+        d="El cliente pide devolver o cambiar prendas de un pedido suyo. Queda SOLICITADA: el stock "
+          "y la nota crédito se mueven cuando la sede recibe las prendas.",
+        b={"tipo": "CAMBIO", "motivo": "La talla M me queda ajustada",
+           "items": [{"id_detalle_pedido": 12, "cantidad": 1, "id_variante_cambio": 22}]},
+        e={201: "Solicitud registrada", 409: "Unidades ya devueltas o pedido sin pagar",
+           422: "Datos inválidos (el cambio debe ser de la misma prenda)"}),
+    "cuenta.mis_devoluciones": dict(t="Cuenta del cliente", r="Mis devoluciones y su estado"),
+
+    # Devoluciones ----------------------------------------------------
+    "devoluciones.registrar_devolucion": dict(
+        t="Devoluciones y cambios", r="Registrar devolución o cambio",
+        d="El personal recibe las prendas en su sede (puede ser distinta a la que vendió). Reintegra el "
+          "stock con un movimiento DEVOLUCION; en un CAMBIO entrega la prenda nueva con un movimiento "
+          "VENTA; emite la nota crédito sobre la factura y la valida ante la DIAN (simulada).",
+        b={"id_pedido": 1058, "id_sede": 1, "tipo": "CAMBIO", "motivo": "La talla M le queda ajustada",
+           "items": [{"id_detalle_pedido": 2411, "cantidad": 1, "id_variante_cambio": 22}]},
+        e={201: "Devolución COMPLETADA con movimientos y nota crédito",
+           409: "Unidades ya devueltas, pedido sin pagar o sin existencias para el cambio",
+           422: "Datos inválidos"}),
+    "devoluciones.listar_devoluciones": dict(
+        t="Devoluciones y cambios", r="Listar devoluciones",
+        q=[("estado", "string", "SOLICITADA, APROBADA, RECHAZADA o COMPLETADA"),
+           ("tipo", "string", "CAMBIO o DEVOLUCION"), ("id_pedido", "integer", "Pedido"),
+           ("id_sede", "integer", "Sede (solo administrador)")] + PAGINA),
+    "devoluciones.obtener_devolucion": dict(t="Devoluciones y cambios", r="Detalle de devolución"),
+    "devoluciones.procesar_solicitud": dict(
+        t="Devoluciones y cambios", r="Completar o rechazar una solicitud",
+        b={"accion": "COMPLETAR"}, e={409: "La devolución ya no está pendiente"}),
+    "devoluciones.buscar_pedido_para_devolucion": dict(
+        t="Devoluciones y cambios", r="Buscar el pedido a devolver",
+        d="Por el código del comprobante o el id. Cualquier sede puede recibir la devolución, así que "
+          "no se limita por sede. Cada ítem trae 'devolvible': unidades que aún se pueden devolver.",
+        q=[("codigo", "string", "Código QR del pedido (SOL-P-...)"), ("id_pedido", "integer", "Pedido")]),
+
     # Catálogo --------------------------------------------------------
     "catalogo.listar_categorias": dict(t="Catálogo", r="Listar categorías"),
     "catalogo.listar_sedes": dict(t="Catálogo", r="Listar sedes"),
@@ -218,6 +254,7 @@ ETIQUETAS = [
     ("Traslados", "Movimiento de mercancía entre sedes."),
     ("Pedidos y ventas", "Venta web y en tienda."),
     ("Pagos y facturación", "Pasarela y DIAN simuladas."),
+    ("Devoluciones y cambios", "Reintegro de stock y nota crédito ante la DIAN."),
     ("Administración", "Maestros y usuarios del personal."),
     ("Fichas técnicas (MongoDB)", "Atributos variables por producto."),
     ("Reseñas (MongoDB)", "Opiniones de los compradores."),

@@ -366,14 +366,14 @@ python scripts/flujo_demo_nosql.py
 
 ## Pruebas automáticas (pytest)
 
-82 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
+89 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
 
 ```bash
 pip install -r requirements-dev.txt
 pytest
 ```
 
-No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar encendidos. Si MySQL no responde, todas se omiten (`skipped`). Si solo falta MongoDB, igual corren las 35 marcadas `solo_mysql` (seguridad y documentación) y se omiten las demás. Para correr solo esas:
+No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar encendidos. Si MySQL no responde, todas se omiten (`skipped`). Si solo falta MongoDB, igual corren las 42 marcadas `solo_mysql` (seguridad, documentación y devoluciones) y se omiten las demás. Para correr solo esas:
 
 ```bash
 pytest -m solo_mysql
@@ -387,13 +387,14 @@ pytest -m solo_mysql
 | `test_degradacion.py` | Con MongoDB caído la API arranca, MySQL sigue respondiendo, `/completo` devuelve `nosql_disponible: false` y los endpoints NoSQL responden 503 |
 | `test_web.py` | La tienda se sirve en `/`, sus CSS y JS cargan, y `/productos?sede=` cuenta el stock de una sola sede |
 | `test_seguridad.py` | **Entrega 3.** Registro (hash bcrypt en MySQL, duplicados, contraseña débil); login correcto e incorrecto con el mismo mensaje; tokens alterados, sin firma, firmados con otra clave o vencidos (401); rol leído de la base y no del token; usuario desactivado; matriz de permisos de los 3 roles (403); trabajador limitado a su sede; compra web del cliente con su cuenta y aislamiento de "mis pedidos" (404 al pedir uno ajeno) |
+| `test_devoluciones.py` | Devolución que reintegra el stock en la sede que recibe (no en la que vendió) y emite la nota crédito validada; cambio de talla con dos movimientos (DEVOLUCION y VENTA) y nota en $0; no se devuelve más de lo comprado; pedido sin pagar; cambio a otra prenda o más cara; permisos por sede y rol; solicitud del cliente que no mueve stock hasta que la tienda la completa, y rechazo que libera las unidades |
 | `test_documentacion.py` | Toda ruta de `/api/v1` está descrita en el OpenAPI, los roles documentados salen de los decoradores y `/api/docs` carga |
 | `test_panel_api.py` | Listados para el panel (traslados, usuarios, opiniones para moderar, prendas desactivadas), activar y desactivar usuarios, y las páginas `/escanear`, `/carrito` y `/panel` |
 
 Resultado esperado:
 
 ```
-82 passed
+89 passed
 ```
 
 ## Recorrido de la interfaz (Playwright)
@@ -621,6 +622,12 @@ Las capturas están en `docs/imagenes/entrega3/`. Se tomaron con la API en local
 | ![Panel rechaza cliente](docs/imagenes/entrega3/76-panel-rechaza-cliente.png) | Un cliente no puede entrar al panel del personal |
 | ![Script](docs/imagenes/entrega3/77-terminal-prueba-autenticacion.png) | `scripts/prueba_autenticacion.py`: hash en MySQL, JWT, 401 y 403 |
 | ![pytest](docs/imagenes/entrega3/78-terminal-pytest-seguridad.png) | `pytest -m solo_mysql`: pruebas de seguridad y documentación |
+| ![Solicitar devolución](docs/imagenes/entrega3/87-tienda-solicitar-devolucion.png) | El cliente pide devolver una de las dos camisetas desde *Mis pedidos* |
+| ![Mis devoluciones](docs/imagenes/entrega3/88-tienda-mis-devoluciones.png) | La solicitud queda *Solicitada* hasta que la sede reciba la prenda |
+| ![Lista de devoluciones](docs/imagenes/entrega3/89-panel-devoluciones-lista.png) | Panel › Devoluciones: la solicitud del cliente por atender |
+| ![Devolución completada](docs/imagenes/entrega3/90-panel-devolucion-completada.png) | Al recibir la prenda: movimiento DEVOLUCION (+1) y nota crédito NC-SOL-0001 validada |
+| ![Registrar cambio](docs/imagenes/entrega3/91-panel-registrar-cambio.png) | Cambio de talla registrado desde el pedido: solo ofrece la misma prenda y muestra el stock de la sede |
+| ![Cambio](docs/imagenes/entrega3/92-panel-cambio-movimientos-nota.png) | El cambio genera dos movimientos (DEVOLUCION +1 y VENTA −1) y una nota crédito en $0 |
 | ![Swagger](docs/imagenes/entrega3/80-swagger-portada.png) | `/api/docs`: autenticación, roles y errores |
 | ![Registro en Swagger](docs/imagenes/entrega3/81-swagger-registro-201.png) | Registro desde Swagger: 201 con el token |
 | ![Authorize](docs/imagenes/entrega3/82-swagger-authorize.png) | Botón *Authorize* con el token del cliente |
@@ -842,7 +849,7 @@ La carpeta `web/` tiene toda la interfaz: páginas HTML, CSS y JavaScript que Fl
 | `/` | Catálogo con búsqueda, filtros y "solo lo que hay en mi sede"; el título cambia con la sede ("Lo que hay hoy en Chapinero") | `GET /sedes`, `/categorias`, `/productos?sede=` |
 | `/producto?id=N` | Precio, tallas y colores, disponibilidad por sede, agregar al carrito, ficha técnica como etiqueta de ropa y opiniones (ver, ordenar, votar y escribir) | `GET /productos/{id}/completo` (MySQL + MongoDB), `GET`/`POST /productos/{id}/resenas`, `POST /resenas/{id}/util` |
 | `/escanear` | Lee el QR de la etiqueta con la cámara (navegadores con `BarcodeDetector`, como Chrome en Android) o con el código escrito; cada lectura queda en `escaneos_qr` | `GET /variantes/qr/{codigo}?sede=` |
-| `/cuenta` | **Entrega 3.** Crear cuenta o entrar (rol CLIENTE) y ver *Mis pedidos* con su estado y el QR para recoger | `POST /auth/registro`, `POST /auth/login`, `GET /auth/perfil`, `GET /cuenta/pedidos` |
+| `/cuenta` | **Entrega 3.** Crear cuenta o entrar (rol CLIENTE), ver *Mis pedidos* con su estado y el QR para recoger, **solicitar una devolución o un cambio** y seguir su estado | `POST /auth/registro`, `POST /auth/login`, `GET /auth/perfil`, `GET /cuenta/pedidos`, `POST /cuenta/pedidos/{id}/devoluciones`, `GET /cuenta/devoluciones` |
 | `/carrito` | Carrito, datos del cliente, recoger en tienda o domicilio, pago con la pasarela simulada (también se puede simular un rechazo) y tiquete con el QR del pedido y la factura | `GET /metodos-pago`, `POST /pedidos` (canal WEB), `POST /pedidos/{id}/pagos` |
 
 - Con la sesión de cliente iniciada, el carrito no pide los datos del comprador: el pedido queda en su cuenta.
@@ -859,6 +866,7 @@ Se entra con el correo y la contraseña de un usuario del sistema. El menú camb
 | Inicio | Pedidos por cobrar y por preparar, traslados en camino, referencias agotadas, últimos pedidos; para administración también la actividad reciente (MongoDB) y lo más escaneado | Ambos |
 | Mostrador | Venta en tienda: agregar prendas por código QR o nombre (muestra existencias de la sede), cliente opcional para la factura, cobro y recibo con factura y QR | Ambos |
 | Pedidos | Lista con filtros y búsqueda por código; detalle con prendas, cliente, envío, pagos y factura; cobrar, preparar, enviar (transportadora y guía), entregar, cancelar y emitir factura | Ambos |
+| Devoluciones | Registrar una devolución o un cambio de talla buscando el pedido por su código (desde la lista o desde el detalle del pedido); atender o rechazar las solicitudes de los clientes; detalle con los movimientos de inventario y la nota crédito | Ambos |
 | Inventario | Existencias por sede (disponibles y reservadas), registrar ingresos; ajustes por conteo físico e historial de movimientos | Ambos / Administración |
 | Traslados | Lista, detalle con avance, despachar (sede de origen) y recibir (sede de destino); crear traslados | Ambos / Administración |
 | Prendas | Crear y editar, desactivar y reactivar; tallas y colores; **editor de ficha técnica** (MongoDB) con vista previa de la etiqueta; **etiquetas QR para imprimir** y colgar en las prendas | Administración |
@@ -901,6 +909,13 @@ El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pesta�
 | Cuenta | GET | `/api/v1/cuenta/pedidos/{id_pedido}` | Cliente (solo los suyos) |
 | Pedidos | POST | `/api/v1/pedidos` | Público o Cliente (WEB) / Trabajador (TIENDA) |
 | Pedidos | GET | `/api/v1/pedidos` | Trabajador |
+| Devoluciones | POST | `/api/v1/devoluciones` | Trabajador (en su sede) |
+| Devoluciones | GET | `/api/v1/devoluciones` | Trabajador |
+| Devoluciones | GET | `/api/v1/devoluciones/{id_devolucion}` | Trabajador |
+| Devoluciones | PATCH | `/api/v1/devoluciones/{id_devolucion}` (completar o rechazar una solicitud) | Trabajador |
+| Devoluciones | GET | `/api/v1/devoluciones/pedido?codigo=` | Trabajador (cualquier sede) |
+| Cuenta | POST | `/api/v1/cuenta/pedidos/{id_pedido}/devoluciones` | Cliente (solo sus pedidos) |
+| Cuenta | GET | `/api/v1/cuenta/devoluciones` | Cliente |
 | Pedidos | GET | `/api/v1/pedidos/{id_pedido}` | Trabajador |
 | Pedidos | GET | `/api/v1/pedidos/qr/{codigo_qr}` | Trabajador |
 | Pedidos | PATCH | `/api/v1/pedidos/{id_pedido}/estado` | Trabajador |
@@ -959,11 +974,11 @@ api/
   errores.py               # ErrorApi y manejadores -> {"detail": "..."}
   comandos.py              # flask verificar-bd / verificar-mongo / crear-admin / sembrar-demo
   rutas/                   # capa HTTP: un blueprint por módulo, bajo /api/v1
-    auth.py  cuenta.py  catalogo.py  inventario.py  pedidos.py  admin.py   # MySQL
+    auth.py  cuenta.py  catalogo.py  inventario.py  pedidos.py  devoluciones.py  admin.py   # MySQL
     actividad.py  resenas.py  fichas.py                            # MongoDB y combinados
     web.py                                                         # sirve la tienda (web/)
   servicios/               # lógica de negocio y transacciones
-    comun.py  inventario.py  traslados.py  pedidos.py  facturacion.py  catalogo.py  usuarios.py
+    comun.py  inventario.py  traslados.py  pedidos.py  devoluciones.py  facturacion.py  catalogo.py  usuarios.py
     actividad.py  resenas.py  fichas.py                            # MongoDB
 database/
   solsticio_schema.sql     # script de creación de la base de datos (23 tablas)
@@ -984,7 +999,7 @@ scripts/
   prueba_autenticacion.py  # Entrega 3: registro, login contra MySQL, JWT y roles
 tests/                     # pruebas automáticas con pytest (MySQL + MongoDB reales)
   conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py  test_web.py  test_panel_api.py
-  test_seguridad.py  test_documentacion.py                         # Entrega 3
+  test_seguridad.py  test_documentacion.py  test_devoluciones.py   # Entrega 3
 e2e/                       # recorrido de la interfaz con Playwright (bases solsticio_e2e)
   preparar_entorno.ps1  recorrido_interfaz.py  borrar_entorno.ps1  comun.ps1
 web/                       # interfaz (HTML + CSS + JS) servida por Flask
@@ -1002,13 +1017,17 @@ Flujo de una petición: **ruta** (valida permisos y datos) → **servicio** (reg
 
 ## Reglas de negocio implementadas
 
-- Toda variación de existencias genera una fila en `movimiento_inventario` (INGRESO, VENTA, TRASLADO_SALIDA, TRASLADO_ENTRADA, AJUSTE).
+- Toda variación de existencias genera una fila en `movimiento_inventario` (INGRESO, VENTA, DEVOLUCION, TRASLADO_SALIDA, TRASLADO_ENTRADA, AJUSTE).
 - Un pedido descuenta stock solo de su sede. Si no hay existencias, responde 409 con las sedes alternativas.
 - Al crear el pedido las unidades quedan reservadas y se descuentan cuando el pago se aprueba. Si el pago se rechaza, la reserva se libera.
 - El precio unitario del pedido es histórico: cambiar el precio del catálogo no altera ventas anteriores.
 - Un traslado genera dos movimientos: salida al despachar y entrada al recibir. Origen y destino no pueden ser la misma sede.
 - Un trabajador solo opera sobre su sede; el administrador es global.
 - Si la DIAN (simulada) falla, la factura queda PENDIENTE sin bloquear la venta.
+- Una devolución reintegra el stock en la sede donde se recibe, no necesariamente en la que vendió.
+- Un cambio de talla o color genera dos movimientos: DEVOLUCION de la prenda que entra y VENTA de la que sale. Solo se cambia por la misma prenda y a un precio igual o menor.
+- Toda devolución completada emite una nota crédito sobre la factura del pedido (en un cambio, por la diferencia de precio) y la valida ante la DIAN simulada; si la DIAN falla, la nota queda PENDIENTE sin deshacer la devolución.
+- Cada unidad comprada se devuelve una sola vez. La solicitud del cliente no mueve stock hasta que la sede recibe las prendas; si se rechaza, las unidades vuelven a poder devolverse.
 - No hay borrado físico: los productos se desactivan.
 - Una reseña con `codigo_pedido` solo se acepta si ese pedido (MySQL) está pagado e incluye el producto; queda marcada como compra verificada.
 - Un mismo email solo puede publicar una reseña por producto (índice único en MongoDB).
@@ -1017,7 +1036,6 @@ Flujo de una petición: **ruta** (valida permisos y datos) → **servicio** (reg
 
 ## Pendiente
 
-- Devoluciones y cambios (`/api/v1/devoluciones`) con nota crédito.
 - Más reportes (`/api/v1/reportes/...`); ya existe `qr-mas-escaneados`.
 
 ## Autores

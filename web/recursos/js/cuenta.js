@@ -1,4 +1,5 @@
-// Cuenta del cliente (rol CLIENTE): crear cuenta, iniciar sesión y ver mis pedidos.
+// Cuenta del cliente (rol CLIENTE): crear cuenta, iniciar sesión, ver mis pedidos y
+// solicitar devoluciones o cambios (POST /cuenta/pedidos/{id}/devoluciones).
 // POST /auth/registro y POST /auth/login devuelven el token JWT; con él se piden
 // GET /auth/perfil y GET /cuenta/pedidos (rutas que solo acepta el rol CLIENTE).
 import {
@@ -15,6 +16,14 @@ const ESTADOS = {
   ENTREGADO: "Entregado",
   CANCELADO: "Cancelado",
 };
+
+const ESTADOS_DEVOLUCION = {
+  SOLICITADA: "Solicitada: lleva las prendas a la sede",
+  APROBADA: "Aprobada",
+  COMPLETADA: "Completada",
+  RECHAZADA: "Rechazada",
+};
+const DEVOLVIBLES = ["PAGADO", "PREPARANDO", "ENVIADO", "ENTREGADO"];
 
 const ENTREGAS = {
   RECOGER_EN_TIENDA: "Recoger en tienda",
@@ -150,12 +159,98 @@ function tarjetaPedido(p) {
     el("details", { class: "pedido-cliente__qr" },
       el("summary", {}, "Ver código para recoger"),
       qr(p.codigo_qr, { tamano: 4 })),
-    el("p", { class: "pedido-cliente__total" }, el("span", {}, "Total"), el("strong", {}, precio(p.total))));
+    el("p", { class: "pedido-cliente__total" }, el("span", {}, "Total"), el("strong", {}, precio(p.total))),
+    DEVOLVIBLES.includes(p.estado) ? botonDevolucion(p) : null);
+}
+
+// ---------------------------------------------------------------------
+// Solicitud de devolución o cambio
+// ---------------------------------------------------------------------
+function botonDevolucion(p) {
+  const zona = el("div");
+  const boton = el("button", { class: "boton boton--secundario", type: "button", onclick: () => {
+    boton.remove();
+    formularioDevolucion(p, zona).catch((error) => mostrarError(zona, error));
+  } }, "Solicitar devolución o cambio");
+  return el("div", { class: "pedido-cliente__devolucion" }, boton, zona);
+}
+
+async function formularioDevolucion(p, contenedor) {
+  contenedor.replaceChildren(el("p", { class: "cargando" }, "Cargando…"));
+  const pedido = await capi(`/cuenta/pedidos/${p.id_pedido}`);
+  const productos = {};
+  await Promise.all([...new Set(pedido.items.map((i) => i.id_producto))].map(async (id) => {
+    productos[id] = await api(`/productos/${id}`);
+  }));
+  const mensaje = el("div", { role: "alert" });
+  const tipo = el("select", { id: `dev-tipo-${p.id_pedido}`, name: "tipo" },
+    el("option", { value: "DEVOLUCION" }, "Devolver (reembolso con nota crédito)"),
+    el("option", { value: "CAMBIO" }, "Cambiar por otra talla o color"));
+  const motivo = el("input", { id: `dev-motivo-${p.id_pedido}`, name: "motivo", maxlength: 200, required: true });
+  const filas = pedido.items.filter((i) => i.devolvible > 0).map((i) => {
+    const cantidad = el("input", { type: "number", min: 0, max: i.devolvible, value: 0, inputmode: "numeric",
+      "aria-label": `Unidades de ${i.descripcion}` });
+    const opciones = (productos[i.id_producto]?.variantes || [])
+      .filter((v) => v.id_variante !== i.id_variante && v.precio_final <= i.precio_unitario);
+    const cambio = el("select", { "aria-label": `Talla o color nuevo para ${i.descripcion}`, hidden: true },
+      el("option", { value: "" }, "Elige talla y color"),
+      opciones.map((v) => el("option", { value: v.id_variante }, `${v.talla} - ${v.color.nombre}`)));
+    return { i, cantidad, cambio, nodo: el("li", { class: "linea linea--compacta" },
+      el("span", {}, `${i.descripcion} (puedes devolver ${i.devolvible})`),
+      el("span", { class: "devolucion__control" }, cantidad, cambio)) };
+  });
+  tipo.addEventListener("change", () => { for (const f of filas) f.cambio.hidden = tipo.value !== "CAMBIO"; });
+
+  if (!filas.length) {
+    contenedor.replaceChildren(el("p", { class: "subtitulo" }, "Ya pediste devolver todas las prendas de este pedido."));
+    return;
+  }
+  const form = el("form", { class: "devolucion", novalidate: true },
+    el("div", { class: "campo" }, el("label", { for: tipo.id }, "¿Qué quieres hacer?"), tipo),
+    el("div", { class: "campo" }, el("label", { for: motivo.id }, "Motivo"), motivo),
+    el("p", { class: "subtitulo" }, "Prendas y unidades:"),
+    el("ul", { class: "lineas lineas--compactas" }, filas.map((f) => f.nodo)),
+    el("p", { class: "nota-compra" }, `Lleva las prendas a ${pedido.sede.nombre}. Allí se reciben y se emite la nota crédito.`),
+    mensaje,
+    el("button", { class: "boton", type: "submit" }, "Enviar solicitud"));
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const items = filas.filter((f) => Number(f.cantidad.value) > 0).map((f) => ({
+      id_detalle_pedido: f.i.id_detalle_pedido, cantidad: Number(f.cantidad.value),
+      ...(tipo.value === "CAMBIO" ? { id_variante_cambio: Number(f.cambio.value) || null } : {}),
+    }));
+    if (!motivo.value.trim() || !items.length || (tipo.value === "CAMBIO" && items.some((x) => !x.id_variante_cambio))) {
+      mensaje.replaceChildren(el("div", { class: "aviso aviso--error" },
+        el("p", {}, "Escribe el motivo, elige cuántas unidades y, si es un cambio, la talla o color nuevo.")));
+      return;
+    }
+    try {
+      await capi(`/cuenta/pedidos/${p.id_pedido}/devoluciones`, { metodo: "POST",
+        cuerpo: { tipo: tipo.value, motivo: motivo.value.trim(), items } });
+      location.reload();
+    } catch (error) { mostrarError(mensaje, error); }
+  });
+  contenedor.replaceChildren(form);
+}
+
+function tarjetaDevolucion(d) {
+  const tono = d.estado === "COMPLETADA" ? "entregado" : d.estado === "RECHAZADA" ? "cancelado" : "pendiente";
+  return el("li", { class: "pedido-cliente" },
+    el("div", { class: "pedido-cliente__cabeza" },
+      el("div", {},
+        el("p", { class: "codigo-pedido" }, `${d.tipo === "CAMBIO" ? "Cambio" : "Devolución"} #${d.id_devolucion}`),
+        el("p", { class: "subtitulo" }, `Pedido ${d.codigo_pedido} · ${fecha(d.fecha_solicitud)} · ${d.sede.nombre}`)),
+      el("span", { class: `estado-pedido estado-pedido--${tono}` }, ESTADOS_DEVOLUCION[d.estado] || d.estado)),
+    el("ul", { class: "lineas lineas--compactas" }, d.items.map((i) => el("li", { class: "linea linea--compacta" },
+      el("span", {}, `${i.devuelto.cantidad} × ${i.devuelto.descripcion}${i.entregado ? ` → ${i.entregado.descripcion}` : ""}`)))),
+    d.nota_credito ? el("p", { class: "pedido-cliente__total" }, el("span", {}, `Nota crédito ${d.nota_credito.numero_nota}`),
+      el("strong", {}, precio(d.nota_credito.monto))) : null);
 }
 
 async function pantallaCuenta() {
   const usuario = await capi("/auth/perfil");
   const pedidos = await capi("/cuenta/pedidos?size=50");
+  const devoluciones = await capi("/cuenta/devoluciones");
   const cerrar = el("button", {
     class: "boton boton--secundario", type: "button",
     onclick: () => { sesionCliente.cerrar(); location.reload(); },
@@ -171,7 +266,9 @@ async function pantallaCuenta() {
     pedidos.items.length
       ? el("ul", { class: "pedidos-cliente" }, pedidos.items.map(tarjetaPedido))
       : el("div", { class: "aviso" }, el("p", {}, "Todavía no tienes pedidos."),
-        el("p", {}, el("a", { class: "boton", href: "/" }, "Ver el catálogo"))));
+        el("p", {}, el("a", { class: "boton", href: "/" }, "Ver el catálogo"))),
+    ...(devoluciones.length ? [el("h2", {}, "Mis devoluciones y cambios"),
+      el("ul", { class: "pedidos-cliente" }, devoluciones.map(tarjetaDevolucion))] : []));
 }
 
 async function iniciar() {
