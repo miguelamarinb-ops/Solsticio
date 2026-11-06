@@ -36,7 +36,7 @@ Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los da
 | Framework | Flask 3.0 |
 | ORM | Flask-SQLAlchemy 3.1 / SQLAlchemy 2.0 |
 | Base de datos relacional | MySQL 8.0 (driver PyMySQL) |
-| Base de datos documental (NoSQL) | MongoDB 7 o superior, probado con 7.0 y 9.0 (driver PyMongo 4.10) |
+| Base de datos documental (NoSQL) | MongoDB 7 o superior, probado con 7.0 y 9.0 en local y 8.0 en MongoDB Atlas (driver PyMongo 4.10) |
 | Autenticación | JWT HS256 (PyJWT) + bcrypt; roles ADMINISTRADOR, TRABAJADOR y CLIENTE |
 | Documentación de la API | OpenAPI 3.0 generado desde las rutas + Swagger UI (`/api/docs`) |
 | Servidor de producción | Gunicorn |
@@ -116,7 +116,7 @@ Si aparece `Can't connect to MySQL server`, el servicio puede estar detenido:
 
 No hay que crear la base ni las colecciones: la API crea la base `solsticio`, sus colecciones e índices la primera vez que arranca.
 
-> **Alternativa sin instalar nada:** crear un clúster gratuito M0 en [MongoDB Atlas](https://www.mongodb.com/atlas) y usar su cadena de conexión `mongodb+srv://...` en `MONGO_URI`. Con Docker: `docker run -d --name mongo -p 27017:27017 mongo:7`.
+> **Alternativa sin instalar nada:** usar un clúster gratuito M0 en [MongoDB Atlas](https://www.mongodb.com/atlas). Los pasos están en [MongoDB en Atlas](#mongodb-en-atlas). Con Docker: `docker run -d --name mongo -p 27017:27017 mongo:7`.
 
 Si el servicio está detenido: `Win + R` → `services.msc` → **MongoDB** → **Iniciar**.
 
@@ -707,6 +707,36 @@ Evento de la bitácora (se guarda solo en `after_request`, sin código extra en 
 | `GET /api/v1/reportes/qr-mas-escaneados?dias=30` | Descripción, precio y stock de cada variante | Ranking de escaneos por variante y canal (agregación) |
 
 Si MongoDB está caído, `/productos/{id}/completo` responde igual con la parte de MySQL y `"nosql_disponible": false`.
+
+### MongoDB en Atlas
+
+La API funciona igual con MongoDB local o con un clúster en la nube de **MongoDB Atlas**. Lo único que cambia es `MONGO_URI` en el `.env`. Se probó con el clúster gratuito `Cluster0` (M0, AWS N. Virginia, MongoDB 8.0, réplica de 3 nodos).
+
+1. **Crear el clúster.** En [cloud.mongodb.com](https://cloud.mongodb.com): *Create* → plan **Free (M0)** → proveedor y región → *Create Deployment*.
+2. **Crear el usuario de la base.** *Security → Database Access* → *Add New Database User* → contraseña (con *Autogenerate Secure Password* sale sin símbolos raros) → rol *Read and write to any database*.
+3. **Abrir el acceso de red.** *Security → Network Access* → *Add Current IP Address* (o `0.0.0.0/0` solo para una práctica).
+4. **Copiar la cadena de conexión.** *Clusters → Connect → Drivers → Python*.
+5. **Ponerla en el `.env`**, cambiando `<db_password>` por la contraseña del usuario:
+
+   ```
+   MONGO_URI=mongodb+srv://USUARIO:CONTRASEÑA@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+   MONGO_DB=solsticio
+   ```
+
+   Si la contraseña tiene `@`, `:` o `/`, se codifica con `urllib.parse.quote_plus()`. El `.env` no se sube a git.
+6. **Verificar y cargar datos:**
+
+   ```bash
+   flask --app app verificar-mongo     # crea la base, las colecciones y los índices en Atlas
+   flask --app app sembrar-demo        # fichas técnicas y opiniones de ejemplo
+   ```
+
+No hay que crear la base ni las colecciones a mano: la API las crea, con sus índices (incluidos los TTL de la bitácora y los escaneos), la primera vez que se conecta. Las pruebas también corren contra Atlas: `pytest` usa allí una base aparte, `solsticio_test`. Para volver a lo local basta con regresar `MONGO_URI` a `mongodb://localhost:27017`.
+
+| Evidencia | Qué muestra |
+|---|---|
+| ![Base en Atlas](docs/imagenes/entrega3/85-terminal-mongodb-atlas.png) | La API conectada a `cluster0.hqzgmi9.mongodb.net`: réplica de 3 nodos, las 4 colecciones con sus índices, una reseña, el ranking de QR por agregación y la bitácora |
+| ![pytest en Atlas](docs/imagenes/entrega3/86-terminal-pytest-atlas.png) | `pytest` con MongoDB en Atlas y MySQL local: 82 pruebas aprobadas |
 
 ### Evidencias de ejecución (Entrega 2)
 
