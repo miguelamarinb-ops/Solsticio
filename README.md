@@ -740,10 +740,20 @@ La API funciona igual con MongoDB local o con un clúster en la nube de **MongoD
 
 No hay que crear la base ni las colecciones a mano: la API las crea, con sus índices (incluidos los TTL de la bitácora y los escaneos), la primera vez que se conecta. Las pruebas también corren contra Atlas: `pytest` usa allí una base aparte, `solsticio_test`. Para volver a lo local basta con regresar `MONGO_URI` a `mongodb://localhost:27017`.
 
+Para ver un resumen de la base (servidor, colecciones, índices, una reseña, el ranking de QR y la bitácora) sin que se muestren las credenciales:
+
+```bash
+python scripts/resumen_mongo.py
+```
+
 | Evidencia | Qué muestra |
 |---|---|
-| ![Base en Atlas](docs/imagenes/entrega3/85-terminal-mongodb-atlas.png) | La API conectada a `cluster0.hqzgmi9.mongodb.net`: réplica de 3 nodos, las 4 colecciones con sus índices, una reseña, el ranking de QR por agregación y la bitácora |
-| ![pytest en Atlas](docs/imagenes/entrega3/86-terminal-pytest-atlas.png) | `pytest` con MongoDB en Atlas y MySQL local: 82 pruebas aprobadas |
+| ![Base en Atlas](docs/imagenes/entrega3/85-terminal-mongodb-atlas.png) | `scripts/resumen_mongo.py` conectado a `cluster0.hqzgmi9.mongodb.net`: réplica de 3 nodos, las 4 colecciones con sus índices, una reseña, el ranking de QR por agregación y la bitácora |
+| ![pytest en Atlas](docs/imagenes/entrega3/86-terminal-pytest-atlas.png) | `pytest` con MongoDB en Atlas y MySQL local: 89 pruebas aprobadas |
+| ![Cluster0 en la consola de Atlas](docs/imagenes/entrega3/93-atlas-cluster0.png) | Consola de Atlas, proyecto NTD20262: Cluster0 activo, nivel gratuito, MongoDB 8.0.37 en AWS |
+| ![Colecciones en el Data Explorer](docs/imagenes/entrega3/94-atlas-colecciones.png) | Data Explorer: la base `solsticio` con sus 4 colecciones, el número de documentos y de índices de cada una |
+| ![Documentos de reseñas](docs/imagenes/entrega3/95-atlas-resenas-documentos.png) | Documentos de `resenas_producto` en Atlas, con subdocumentos (`autor`, `atributos`) y arreglos (`respuestas`) |
+| ![Índices de reseñas](docs/imagenes/entrega3/96-atlas-resenas-indices.png) | Índices de `resenas_producto`: `producto_estado_fecha` (compuesto) y `producto_autor` (único y compuesto), todos en estado READY |
 
 ### Evidencias de ejecución (Entrega 2)
 
@@ -783,6 +793,8 @@ Hay dos juegos de evidencias:
 
 ![verificar-mongo](docs/imagenes/nosql/50-verificar-mongo.png)
 ![Documentos en mongosh](docs/imagenes/nosql/51-mongosh-documentos.png)
+
+En mongosh, contra la base en Atlas: las colecciones, una ficha técnica con atributos anidados, una reseña con subdocumentos y los índices de la bitácora; `ttl_fecha` borra los registros a los 15.552.000 segundos (180 días).
 
 **Endpoints combinados SQL + NoSQL**
 
@@ -997,6 +1009,7 @@ postman/
 scripts/
   flujo_demo_nosql.py      # recorre todos los endpoints NoSQL y combinados
   prueba_autenticacion.py  # Entrega 3: registro, login contra MySQL, JWT y roles
+  resumen_mongo.py         # resumen de la base NoSQL (local o Atlas) sin mostrar credenciales
 tests/                     # pruebas automáticas con pytest (MySQL + MongoDB reales)
   conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py  test_web.py  test_panel_api.py
   test_seguridad.py  test_documentacion.py  test_devoluciones.py   # Entrega 3
