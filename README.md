@@ -420,9 +420,8 @@ Corre sobre bases aparte llamadas `solsticio_e2e` y una API en el puerto 5001, a
 ```powershell
 pip install -r requirements-dev.txt
 .\e2e\preparar_entorno.ps1          # crea solsticio_e2e, carga el catálogo y levanta la API en :5001
-python e2e
-ecorrido_interfaz.py     # corre los 33 pasos
-.\e2eorrar_entorno.ps1            # apaga la API de pruebas y borra las bases solsticio_e2e
+python e2e\recorrido_interfaz.py    # corre los 33 pasos
+.\e2e\borrar_entorno.ps1          # apaga la API de pruebas y borra las bases solsticio_e2e
 ```
 
 - **Navegador:** usa el Chrome instalado. Si no lo tienes, ejecuta `python -m playwright install chromium` y corre el recorrido con `$env:E2E_CANAL="chromium"`.
