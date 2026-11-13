@@ -26,7 +26,6 @@ Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los da
 - [Endpoints](#endpoints)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Reglas de negocio implementadas](#reglas-de-negocio-implementadas)
-- [Pendiente](#pendiente)
 
 ## Tecnologías
 
@@ -366,14 +365,14 @@ python scripts/flujo_demo_nosql.py
 
 ## Pruebas automáticas (pytest)
 
-89 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
+98 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
 
 ```bash
 pip install -r requirements-dev.txt
 pytest
 ```
 
-No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar encendidos. Si MySQL no responde, todas se omiten (`skipped`). Si solo falta MongoDB, igual corren las 42 marcadas `solo_mysql` (seguridad, documentación y devoluciones) y se omiten las demás. Para correr solo esas:
+No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar encendidos. Si MySQL no responde, todas se omiten (`skipped`). Si solo falta MongoDB, igual corren las 51 marcadas `solo_mysql` (seguridad, documentación, devoluciones y reportes) y se omiten las demás. Para correr solo esas:
 
 ```bash
 pytest -m solo_mysql
@@ -388,13 +387,14 @@ pytest -m solo_mysql
 | `test_web.py` | La tienda se sirve en `/`, sus CSS y JS cargan, y `/productos?sede=` cuenta el stock de una sola sede |
 | `test_seguridad.py` | **Entrega 3.** Registro (hash bcrypt en MySQL, duplicados, contraseña débil); login correcto e incorrecto con el mismo mensaje; tokens alterados, sin firma, firmados con otra clave o vencidos (401); rol leído de la base y no del token; usuario desactivado; matriz de permisos de los 3 roles (403); trabajador limitado a su sede; compra web del cliente con su cuenta y aislamiento de "mis pedidos" (404 al pedir uno ajeno) |
 | `test_devoluciones.py` | Devolución que reintegra el stock en la sede que recibe (no en la que vendió) y emite la nota crédito validada; cambio de talla con dos movimientos (DEVOLUCION y VENTA) y nota en $0; no se devuelve más de lo comprado; pedido sin pagar; cambio a otra prenda o más cara; permisos por sede y rol; solicitud del cliente que no mueve stock hasta que la tienda la completa, y rechazo que libera las unidades |
+| `test_reportes.py` | Reporte de ventas (solo pedidos pagados, devoluciones restadas por su nota crédito, por canal y por día), filtro por canal y periodo sin ventas; prendas más vendidas con su talla más vendida; rotación de inventario con el stock reconstruido desde los movimientos; validación de fechas, canal y sede; solo el administrador |
 | `test_documentacion.py` | Toda ruta de `/api/v1` está descrita en el OpenAPI, los roles documentados salen de los decoradores y `/api/docs` carga |
 | `test_panel_api.py` | Listados para el panel (traslados, usuarios, opiniones para moderar, prendas desactivadas), activar y desactivar usuarios, y las páginas `/escanear`, `/carrito` y `/panel` |
 
 Resultado esperado:
 
 ```
-89 passed
+98 passed
 ```
 
 ## Recorrido de la interfaz (Playwright)
@@ -581,7 +581,7 @@ Algunas respuestas son **409 Conflict** a propósito: las peticiones se ejecutar
 | Consultar stock, ingresos, despachar y recibir traslados | | | ✔ su sede | ✔ |
 | Ajustes de inventario, movimientos, crear traslados | | | | ✔ |
 | Productos, variantes, categorías, sedes y usuarios | | | | ✔ |
-| Moderar reseñas, bitácora y reportes | | | | ✔ |
+| Moderar reseñas, bitácora y reportes (ventas, más vendidas, rotación, QR) | | | | ✔ |
 
 En el código, cada ruta declara quién puede usarla: `@requiere_auth(ADMINISTRADOR)`, `@requiere_auth(*PERSONAL)` o `@requiere_auth(CLIENTE)`.
 
@@ -621,13 +621,16 @@ Las capturas están en `docs/imagenes/entrega3/`. Se tomaron con la API en local
 | ![Mis pedidos](docs/imagenes/entrega3/75-tienda-mis-pedidos.png) | "Mis pedidos": solo los del cliente, con estado y QR |
 | ![Panel rechaza cliente](docs/imagenes/entrega3/76-panel-rechaza-cliente.png) | Un cliente no puede entrar al panel del personal |
 | ![Script](docs/imagenes/entrega3/77-terminal-prueba-autenticacion.png) | `scripts/prueba_autenticacion.py`: hash en MySQL, JWT, 401 y 403 |
-| ![pytest](docs/imagenes/entrega3/78-terminal-pytest-seguridad.png) | `pytest -m solo_mysql`: pruebas de seguridad y documentación |
+| ![pytest](docs/imagenes/entrega3/78-terminal-pytest-seguridad.png) | `pytest tests/test_seguridad.py tests/test_documentacion.py`: las 35 pruebas de autenticación, JWT, roles y documentación |
 | ![Solicitar devolución](docs/imagenes/entrega3/87-tienda-solicitar-devolucion.png) | El cliente pide devolver una de las dos camisetas desde *Mis pedidos* |
 | ![Mis devoluciones](docs/imagenes/entrega3/88-tienda-mis-devoluciones.png) | La solicitud queda *Solicitada* hasta que la sede reciba la prenda |
 | ![Lista de devoluciones](docs/imagenes/entrega3/89-panel-devoluciones-lista.png) | Panel › Devoluciones: la solicitud del cliente por atender |
 | ![Devolución completada](docs/imagenes/entrega3/90-panel-devolucion-completada.png) | Al recibir la prenda: movimiento DEVOLUCION (+1) y nota crédito NC-SOL-0001 validada |
 | ![Registrar cambio](docs/imagenes/entrega3/91-panel-registrar-cambio.png) | Cambio de talla registrado desde el pedido: solo ofrece la misma prenda y muestra el stock de la sede |
 | ![Cambio](docs/imagenes/entrega3/92-panel-cambio-movimientos-nota.png) | El cambio genera dos movimientos (DEVOLUCION +1 y VENTA −1) y una nota crédito en $0 |
+| ![Reporte de ventas](docs/imagenes/entrega3/97-panel-reporte-ventas.png) | Panel › Reportes › Ventas: ingresos netos, pedidos pagados, ticket promedio y devoluciones; por canal y por día, con filtros de fechas, sede y canal |
+| ![Más vendidas](docs/imagenes/entrega3/98-panel-reporte-mas-vendidas.png) | Prendas más vendidas del periodo, con unidades, ingresos y talla más vendida |
+| ![Rotación](docs/imagenes/entrega3/99-panel-reporte-rotacion.png) | Rotación de inventario: unidades vendidas frente a existencias promedio, días de inventario y clasificación |
 | ![Swagger](docs/imagenes/entrega3/80-swagger-portada.png) | `/api/docs`: autenticación, roles y errores |
 | ![Registro en Swagger](docs/imagenes/entrega3/81-swagger-registro-201.png) | Registro desde Swagger: 201 con el token |
 | ![Authorize](docs/imagenes/entrega3/82-swagger-authorize.png) | Botón *Authorize* con el token del cliente |
@@ -749,7 +752,7 @@ python scripts/resumen_mongo.py
 | Evidencia | Qué muestra |
 |---|---|
 | ![Base en Atlas](docs/imagenes/entrega3/85-terminal-mongodb-atlas.png) | `scripts/resumen_mongo.py` conectado a `cluster0.hqzgmi9.mongodb.net`: réplica de 3 nodos, las 4 colecciones con sus índices, una reseña, el ranking de QR por agregación y la bitácora |
-| ![pytest en Atlas](docs/imagenes/entrega3/86-terminal-pytest-atlas.png) | `pytest` con MongoDB en Atlas y MySQL local: 89 pruebas aprobadas |
+| ![pytest en Atlas](docs/imagenes/entrega3/86-terminal-pytest-atlas.png) | `pytest` con MongoDB en Atlas y MySQL local: 98 pruebas aprobadas |
 | ![Cluster0 en la consola de Atlas](docs/imagenes/entrega3/93-atlas-cluster0.png) | Consola de Atlas, proyecto NTD20262: Cluster0 activo, nivel gratuito, MongoDB 8.0.37 en AWS |
 | ![Colecciones en el Data Explorer](docs/imagenes/entrega3/94-atlas-colecciones.png) | Data Explorer: la base `solsticio` con sus 4 colecciones, el número de documentos y de índices de cada una |
 | ![Documentos de reseñas](docs/imagenes/entrega3/95-atlas-resenas-documentos.png) | Documentos de `resenas_producto` en Atlas, con subdocumentos (`autor`, `atributos`) y arreglos (`respuestas`) |
@@ -886,7 +889,7 @@ Se entra con el correo y la contraseña de un usuario del sistema. El menú camb
 | Opiniones | Moderación: responder como tienda, ocultar o publicar, eliminar | Administración |
 | Usuarios | Crear, activar o desactivar el acceso, ver la actividad de cada uno | Administración |
 | Bitácora | Actividad de todos los usuarios (MongoDB) con filtros por usuario, acción, resultado y fechas | Administración |
-| Reportes | Prendas más escaneadas por periodo, con existencias de MySQL | Administración |
+| Reportes | Ventas por periodo, sede y canal; prendas más vendidas; rotación de inventario; prendas más escaneadas (MongoDB) con existencias de MySQL | Administración |
 | Mi perfil | Datos del usuario (MySQL) y sus últimas acciones (MongoDB): el endpoint combinado `/auth/perfil/actividad` | Ambos |
 
 El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pestaña o cuando vence el token, y entonces el panel vuelve a pedir el inicio de sesión. Las etiquetas QR codifican la dirección `/escanear?codigo=SOL-V-…`, así que cualquier celular las abre con la cámara normal.
@@ -926,6 +929,9 @@ El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pesta�
 | Devoluciones | GET | `/api/v1/devoluciones/{id_devolucion}` | Trabajador |
 | Devoluciones | PATCH | `/api/v1/devoluciones/{id_devolucion}` (completar o rechazar una solicitud) | Trabajador |
 | Devoluciones | GET | `/api/v1/devoluciones/pedido?codigo=` | Trabajador (cualquier sede) |
+| Reportes | GET | `/api/v1/reportes/ventas?desde=&hasta=&id_sede=&canal=` | Administrador |
+| Reportes | GET | `/api/v1/reportes/productos-mas-vendidos?desde=&hasta=&limite=&id_sede=` | Administrador |
+| Reportes | GET | `/api/v1/reportes/rotacion-inventario?desde=&hasta=&id_sede=` | Administrador |
 | Cuenta | POST | `/api/v1/cuenta/pedidos/{id_pedido}/devoluciones` | Cliente (solo sus pedidos) |
 | Cuenta | GET | `/api/v1/cuenta/devoluciones` | Cliente |
 | Pedidos | GET | `/api/v1/pedidos/{id_pedido}` | Trabajador |
@@ -986,11 +992,11 @@ api/
   errores.py               # ErrorApi y manejadores -> {"detail": "..."}
   comandos.py              # flask verificar-bd / verificar-mongo / crear-admin / sembrar-demo
   rutas/                   # capa HTTP: un blueprint por módulo, bajo /api/v1
-    auth.py  cuenta.py  catalogo.py  inventario.py  pedidos.py  devoluciones.py  admin.py   # MySQL
+    auth.py  cuenta.py  catalogo.py  inventario.py  pedidos.py  devoluciones.py  reportes.py  admin.py   # MySQL
     actividad.py  resenas.py  fichas.py                            # MongoDB y combinados
     web.py                                                         # sirve la tienda (web/)
   servicios/               # lógica de negocio y transacciones
-    comun.py  inventario.py  traslados.py  pedidos.py  devoluciones.py  facturacion.py  catalogo.py  usuarios.py
+    comun.py  inventario.py  traslados.py  pedidos.py  devoluciones.py  reportes.py  facturacion.py  catalogo.py  usuarios.py
     actividad.py  resenas.py  fichas.py                            # MongoDB
 database/
   solsticio_schema.sql     # script de creación de la base de datos (23 tablas)
@@ -1012,7 +1018,7 @@ scripts/
   resumen_mongo.py         # resumen de la base NoSQL (local o Atlas) sin mostrar credenciales
 tests/                     # pruebas automáticas con pytest (MySQL + MongoDB reales)
   conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py  test_web.py  test_panel_api.py
-  test_seguridad.py  test_documentacion.py  test_devoluciones.py   # Entrega 3
+  test_seguridad.py  test_documentacion.py  test_devoluciones.py  test_reportes.py   # Entrega 3
 e2e/                       # recorrido de la interfaz con Playwright (bases solsticio_e2e)
   preparar_entorno.ps1  recorrido_interfaz.py  borrar_entorno.ps1  comun.ps1
 web/                       # interfaz (HTML + CSS + JS) servida por Flask
@@ -1030,6 +1036,8 @@ Flujo de una petición: **ruta** (valida permisos y datos) → **servicio** (reg
 
 ## Reglas de negocio implementadas
 
+- Reportes (caso de uso 2.3.9): una venta cuenta cuando el pedido quedó pagado; los montos salen de los totales históricos de cada pedido, no del precio actual; las devoluciones se restan por el monto de su nota crédito; la rotación de inventario es unidades vendidas ÷ existencias promedio del periodo, con el stock de cada fecha reconstruido desde `movimiento_inventario`.
+
 - Toda variación de existencias genera una fila en `movimiento_inventario` (INGRESO, VENTA, DEVOLUCION, TRASLADO_SALIDA, TRASLADO_ENTRADA, AJUSTE).
 - Un pedido descuenta stock solo de su sede. Si no hay existencias, responde 409 con las sedes alternativas.
 - Al crear el pedido las unidades quedan reservadas y se descuentan cuando el pago se aprueba. Si el pago se rechaza, la reserva se libera.
@@ -1046,10 +1054,6 @@ Flujo de una petición: **ruta** (valida permisos y datos) → **servicio** (reg
 - Un mismo email solo puede publicar una reseña por producto (índice único en MongoDB).
 - MongoDB nunca guarda precios ni existencias: esos datos siempre se leen de MySQL.
 - Si MongoDB falla, ninguna operación de MySQL se cancela por ello.
-
-## Pendiente
-
-- Más reportes (`/api/v1/reportes/...`); ya existe `qr-mas-escaneados`.
 
 ## Autores
 

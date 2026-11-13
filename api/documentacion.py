@@ -22,6 +22,8 @@ bp = Blueprint("documentacion", __name__)
 #   e = códigos de error propios del endpoint (además de 401/403 que se agregan solos)
 # ---------------------------------------------------------------------
 PAGINA = [("page", "integer", "Página (desde 1)"), ("size", "integer", "Tamaño de página (máx. 100)")]
+PERIODO = [("desde", "string", "AAAA-MM-DD (por defecto, hace 29 días)"),
+           ("hasta", "string", "AAAA-MM-DD, incluido (por defecto, hoy)")]
 
 ENDPOINTS = {
     # Autenticación ---------------------------------------------------
@@ -91,6 +93,19 @@ ENDPOINTS = {
         d="Por el código del comprobante o el id. Cualquier sede puede recibir la devolución, así que "
           "no se limita por sede. Cada ítem trae 'devolvible': unidades que aún se pueden devolver.",
         q=[("codigo", "string", "Código QR del pedido (SOL-P-...)"), ("id_pedido", "integer", "Pedido")]),
+    "reportes.reporte_ventas": dict(
+        t="Reportes de ventas e inventario", r="Reporte: ventas por periodo",
+        d="Cuenta los pedidos pagados (PAGADO, PREPARANDO, ENVIADO, ENTREGADO). Los ingresos netos restan "
+          "las notas crédito emitidas en el periodo.",
+        q=PERIODO + [("id_sede", "integer", "Sede"), ("canal", "string", "WEB o TIENDA")]),
+    "reportes.reporte_productos_mas_vendidos": dict(
+        t="Reportes de ventas e inventario", r="Reporte: prendas más vendidas",
+        q=PERIODO + [("limite", "integer", "Cantidad (máx. 50, por defecto 5)"), ("id_sede", "integer", "Sede")]),
+    "reportes.reporte_rotacion_inventario": dict(
+        t="Reportes de ventas e inventario", r="Reporte: rotación de inventario",
+        d="Por prenda: unidades vendidas / existencias promedio del periodo, días de inventario y "
+          "clasificación ALTA, MEDIA, BAJA o SIN_VENTAS.",
+        q=PERIODO + [("id_sede", "integer", "Sede")]),
 
     # Catálogo --------------------------------------------------------
     "catalogo.listar_categorias": dict(t="Catálogo", r="Listar categorías"),
@@ -255,6 +270,7 @@ ETIQUETAS = [
     ("Pedidos y ventas", "Venta web y en tienda."),
     ("Pagos y facturación", "Pasarela y DIAN simuladas."),
     ("Devoluciones y cambios", "Reintegro de stock y nota crédito ante la DIAN."),
+    ("Reportes de ventas e inventario", "Caso de uso 2.3.9: ventas, prendas más vendidas y rotación (MySQL)."),
     ("Administración", "Maestros y usuarios del personal."),
     ("Fichas técnicas (MongoDB)", "Atributos variables por producto."),
     ("Reseñas (MongoDB)", "Opiniones de los compradores."),

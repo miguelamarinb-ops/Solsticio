@@ -391,7 +391,15 @@ with sync_playwright() as p:
 
     @paso("Reportes y Mi perfil", adm)
     def _():
-        ir(adm, "#/reportes", "Prendas más escaneadas")
+        ir(adm, "#/reportes", "Reportes")
+        expect(adm.locator(".cifras .cifra").first).to_be_visible()
+        adm.select_option("select[name=canal]", "TIENDA")
+        adm.wait_for_timeout(500)
+        ir(adm, "#/reportes/mas-vendidas", "Reportes")
+        expect(adm.locator(".tabla tbody tr").first).to_be_visible()
+        ir(adm, "#/reportes/rotacion", "Reportes")
+        expect(adm.locator(".tabla tbody tr").first).to_be_visible()
+        ir(adm, "#/reportes/qr", "Reportes")
         adm.select_option("select[name=dias]", "7")
         adm.wait_for_timeout(500)
         ir(adm, "#/perfil", "Mi perfil")

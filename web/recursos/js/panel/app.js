@@ -28,6 +28,7 @@ const RUTAS = [
   ["usuarios", "usuarios", true],
   ["bitacora", "bitacora", true],
   ["reportes", "reportes", true],
+  ["reportes/:vista", "reportes", true],
   ["perfil", "perfil", false],
 ];
 
