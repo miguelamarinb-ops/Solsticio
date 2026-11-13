@@ -100,7 +100,7 @@ CREATE TABLE rol (
 CREATE TABLE usuario (
     id_usuario      INT AUTO_INCREMENT PRIMARY KEY,
     id_rol          INT          NOT NULL,
-    id_sede         INT,                       -- NULL para administrador global
+    id_sede         INT,                       -- NULL para administrador global y para CLIENTE
     documento       VARCHAR(20)  NOT NULL UNIQUE,
     nombres         VARCHAR(80)  NOT NULL,
     apellidos       VARCHAR(80)  NOT NULL,
@@ -115,7 +115,9 @@ CREATE TABLE usuario (
 ) ENGINE=InnoDB;
 
 -- Separado de usuario: el cliente de mostrador requiere datos de
--- facturacion sin necesidad de tener cuenta de acceso.
+-- facturacion sin necesidad de tener cuenta de acceso. Cuando el
+-- comprador se registra en la tienda web se crea un usuario con rol
+-- CLIENTE y se enlaza aqui por id_usuario.
 CREATE TABLE cliente (
     id_cliente        INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario        INT UNIQUE,              -- NULL si no esta registrado
@@ -447,7 +449,8 @@ CREATE TABLE liquidacion_nomina (
 
 INSERT INTO rol (nombre, descripcion) VALUES
     ('ADMINISTRADOR', 'Control total del sistema multisede'),
-    ('TRABAJADOR',    'Operacion de ventas y consultas en su sede');
+    ('TRABAJADOR',    'Operacion de ventas y consultas en su sede'),
+    ('CLIENTE',       'Comprador registrado en la tienda web');
 
 INSERT INTO talla (valor, orden) VALUES
     ('XS',1), ('S',2), ('M',3), ('L',4), ('XL',5), ('XXL',6);

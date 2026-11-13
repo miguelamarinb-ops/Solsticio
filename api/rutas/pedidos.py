@@ -7,7 +7,9 @@ from sqlalchemy import select
 
 from api.errores import ErrorApi
 from api.modelos import Canal, EstadoPago, EstadoPedido, Factura, MetodoPago, Pedido, db
-from api.seguridad import PERSONAL, auth_opcional, es_admin, requiere_auth, verificar_sede
+from api.seguridad import (
+    PERSONAL, auth_opcional, es_admin, es_personal, requiere_auth, verificar_sede,
+)
 from api.serializadores import factura_dict, pago_dict, pedido_dict, pedido_por_qr
 from api.servicios import facturacion, pedidos
 from api.validacion import a_enum, arg_entero, leer_json, obtener_o_404
@@ -90,6 +92,8 @@ def registrar_pago(id_pedido):
     if pedido.canal == Canal.TIENDA:
         if g.usuario is None:
             raise ErrorApi(401, "Los pagos de ventas en tienda requieren el token de un trabajador")
+        if not es_personal(g.usuario):
+            raise ErrorApi(403, "Solo el personal registra pagos de ventas en tienda")
         verificar_sede(g.usuario, pedido.id_sede)
 
     pago = pedidos.registrar_pago(pedido, leer_json(), g.usuario)

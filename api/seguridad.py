@@ -2,6 +2,13 @@
 seguridad.py
 Contraseñas con bcrypt y autenticación JWT (HS256) mediante la cabecera
 Authorization: Bearer <token>.
+
+Control de acceso por roles (RBAC), tres niveles:
+    ADMINISTRADOR  personal con control total, sin sede (global)
+    TRABAJADOR     personal que opera solo sobre su sede
+    CLIENTE        comprador registrado en la tienda web; solo ve lo suyo
+El rol se lee de la base en cada petición (no del token), así que un cambio
+de rol o una desactivación surten efecto de inmediato.
 """
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -15,7 +22,13 @@ from api.modelos import Usuario, db
 
 ADMINISTRADOR = "ADMINISTRADOR"
 TRABAJADOR = "TRABAJADOR"
+CLIENTE = "CLIENTE"
 PERSONAL = (ADMINISTRADOR, TRABAJADOR)
+ROLES = (ADMINISTRADOR, TRABAJADOR, CLIENTE)
+
+# Hash de relleno: si el email no existe se compara igual contra él, para que
+# el tiempo de respuesta no delate qué correos están registrados.
+_HASH_RELLENO = bcrypt.hashpw(b"solsticio-relleno", bcrypt.gensalt()).decode("utf-8")
 
 
 def hashear_password(password):
@@ -23,6 +36,10 @@ def hashear_password(password):
 
 
 def verificar_password(password, hash_password):
+    if hash_password is None:
+        hash_password = _HASH_RELLENO
+        bcrypt.checkpw(password.encode("utf-8"), hash_password.encode("utf-8"))
+        return False
     try:
         return bcrypt.checkpw(password.encode("utf-8"), hash_password.encode("utf-8"))
     except ValueError:
@@ -74,6 +91,9 @@ def requiere_auth(*roles):
             if roles and g.usuario.rol.nombre not in roles:
                 raise ErrorApi(403, "No tiene permisos para esta operación")
             return vista(*args, **kwargs)
+        # La documentación OpenAPI (api/documentacion.py) lee estos atributos para
+        # mostrar quién puede usar cada ruta sin repetir la información a mano.
+        envoltura.roles_permitidos = roles or ROLES
         return envoltura
     return decorador
 
@@ -84,11 +104,20 @@ def auth_opcional(vista):
     def envoltura(*args, **kwargs):
         g.usuario = _usuario_desde_token(obligatorio=False)
         return vista(*args, **kwargs)
+    envoltura.auth_opcional = True
     return envoltura
 
 
 def es_admin(usuario):
     return usuario is not None and usuario.rol.nombre == ADMINISTRADOR
+
+
+def es_personal(usuario):
+    return usuario is not None and usuario.rol.nombre in PERSONAL
+
+
+def es_cliente(usuario):
+    return usuario is not None and usuario.rol.nombre == CLIENTE
 
 
 def verificar_sede(usuario, id_sede):

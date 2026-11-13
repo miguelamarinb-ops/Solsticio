@@ -104,6 +104,7 @@ const TONOS = {
   PUBLICADA: "verde", OCULTA: "gris", ACTIVO: "verde", INACTIVO: "gris",
   INGRESO: "verde", VENTA: "azul", DEVOLUCION: "sol", TRASLADO_SALIDA: "sol", TRASLADO_ENTRADA: "verde", AJUSTE: "gris",
   WEB: "azul", TIENDA: "gris",
+  SOLICITADA: "sol", APROBADA: "azul", COMPLETADA: "verde", CAMBIO: "azul",
 };
 const TEXTOS = {
   EN_TRANSITO: "En tránsito", TRASLADO_SALIDA: "Salida por traslado", TRASLADO_ENTRADA: "Entrada por traslado",

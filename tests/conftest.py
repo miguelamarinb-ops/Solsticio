@@ -10,7 +10,9 @@ se toma DATABASE_URL y solo se cambia el nombre de la base.
     pytest
 
 Variables opcionales: TEST_DATABASE_URL, TEST_MONGO_URI, TEST_MONGO_DB.
-Si alguna base no responde, las pruebas se marcan como omitidas (skip).
+Si MySQL no responde, todas las pruebas se omiten (skip). Si solo falta MongoDB,
+se ejecutan las marcadas con @pytest.mark.solo_mysql (autenticación y RBAC) y
+se omiten las demás.
 """
 import os
 from pathlib import Path
@@ -80,19 +82,22 @@ def _crear_base_mysql():
 
 
 def _limpiar_mongo():
+    """Borra la base de pruebas de MongoDB. Devuelve el error si no responde."""
     try:
         cliente = MongoClient(MONGO_URI, serverSelectionTimeoutMS=2000)
         cliente.drop_database(MONGO_DB)
         cliente.close()
+        return None
     except PyMongoError as error:
-        pytest.skip(f"MongoDB no disponible para pruebas: {error}")
+        return str(error).split(",")[0]
 
 
 @pytest.fixture(scope="session")
 def app():
     _crear_base_mysql()
-    _limpiar_mongo()
+    error_mongo = _limpiar_mongo()
     aplicacion = crear_app(ConfigPruebas)
+    aplicacion.config["MONGO_ERROR_PRUEBAS"] = error_mongo
     with aplicacion.app_context():
         from api.servicios import usuarios
         usuarios.crear_usuario({
@@ -122,12 +127,19 @@ def auth(token):
 
 @pytest.fixture(scope="session")
 def mongo(app):
+    if app.config["MONGO_ERROR_PRUEBAS"] is not None:
+        pytest.skip(f"MongoDB no disponible para pruebas: {app.config['MONGO_ERROR_PRUEBAS']}")
     return app.extensions["mongo"]
 
 
 @pytest.fixture(autouse=True)
-def mongo_limpio(mongo):
+def mongo_limpio(request, app):
     """Cada prueba empieza con las colecciones NoSQL vacías (los índices se conservan)."""
+    if app.config["MONGO_ERROR_PRUEBAS"] is not None:
+        if request.node.get_closest_marker("solo_mysql"):
+            return
+        pytest.skip(f"MongoDB no disponible para pruebas: {app.config['MONGO_ERROR_PRUEBAS']}")
+    mongo = request.getfixturevalue("mongo")
     for nombre in mongo.list_collection_names():
         mongo[nombre].delete_many({})
 

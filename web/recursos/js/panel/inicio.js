@@ -24,11 +24,12 @@ export async function render(principal, ctx) {
   ]);
 
   const saludo = new Date().getHours() < 12 ? "Buenos días" : new Date().getHours() < 19 ? "Buenas tardes" : "Buenas noches";
-  principal.replaceChildren(
-    encabezado(`${saludo}, ${usuario.nombres}`,
+  const cabecera = encabezado(`${saludo}, ${usuario.nombres}`,
       esAdmin ? "Esto es lo que pide atención hoy en las sedes." : `Esto es lo que pide atención hoy en ${sinPrefijo(usuario.sede?.nombre)}.`,
       el("a", { class: "boton", href: "#/mostrador" }, "Nueva venta"),
-      el("a", { class: "boton boton--secundario", href: "#/inventario/ingreso" }, "Registrar ingreso")),
+      el("a", { class: "boton boton--secundario", href: "#/inventario/ingreso" }, "Registrar ingreso"));
+  principal.replaceChildren(
+    cabecera,
     el("section", { class: "cifras", "aria-label": "Pendientes" },
       cifra(porCobrar, "pedidos por cobrar", "#/pedidos?estado=PENDIENTE", porCobrar ? "sol" : null),
       cifra(porPreparar, "pagados por preparar o entregar", "#/pedidos?estado=PAGADO", porPreparar ? "azul" : null),
@@ -58,6 +59,8 @@ export async function render(principal, ctx) {
       papi("/actividad?size=8").catch(() => ({ items: [] })),
       papi("/reportes/qr-mas-escaneados?dias=30&limite=5").catch(() => ({ items: [] })),
     ]);
+    // Si mientras tanto se abrió otra sección, no se mezcla este bloque con ella.
+    if (!principal.contains(cabecera)) return;
     principal.append(el("div", { class: "rejilla-panel" },
       el("section", { class: "tarjeta" },
         el("h2", {}, "Actividad reciente del equipo"),
@@ -76,6 +79,6 @@ export async function render(principal, ctx) {
           { titulo: "Escaneos", valor: (r) => String(r.escaneos.total), clase: "num" },
           { titulo: "Stock", valor: (r) => String(r.stock_total), clase: "num" },
         ], ranking.items, { vacio: "Aún no se han escaneado etiquetas." }),
-        el("p", { class: "nota" }, el("a", { href: "#/reportes" }, "Ver el reporte")))));
+        el("p", { class: "nota" }, el("a", { href: "#/reportes/qr" }, "Ver el reporte")))));
   }
 }

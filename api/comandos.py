@@ -38,11 +38,12 @@ def registrar_comandos(app):
             click.echo(f"  {nombre}: {base[nombre].estimated_document_count()} documentos")
 
     @app.cli.command("sembrar-demo")
-    def sembrar_demo():
+    @click.option("--sin-mongo", is_flag=True, help="Solo MySQL: omite fichas técnicas y opiniones.")
+    def sembrar_demo(sin_mongo):
         """Carga un catálogo de ejemplo (prendas, existencias, fichas y opiniones). No duplica datos."""
         from api.demo import sembrar
         try:
-            resumen = sembrar()
+            resumen = sembrar(con_mongo=not sin_mongo)
         except PyMongoError as error:
             raise click.ClickException(f"MongoDB no responde: {error}") from None
         click.echo("Catálogo de ejemplo listo. Creado ahora:")

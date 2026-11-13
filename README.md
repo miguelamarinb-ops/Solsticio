@@ -4,6 +4,8 @@ API REST del sistema multisede de inventario y ventas **Solsticio**, una tienda 
 
 El sistema centraliza las existencias por sede, registra las ventas web y en tienda, y deja trazabilidad de cada movimiento de mercancía. También cubre los traslados entre sedes, los pagos y la facturación electrónica ante la DIAN (estos dos últimos, simulados).
 
+**Entrega 3 (seguridad y cierre):** registro e inicio de sesión contra MySQL con contraseñas en bcrypt, tokens JWT que protegen las rutas y **tres roles** (`ADMINISTRADOR`, `TRABAJADOR` y `CLIENTE`). La documentación técnica de la API está en **`/api/docs`** (Swagger UI). Ver [Seguridad: autenticación y roles](#seguridad-autenticación-y-roles-entrega-3).
+
 Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los datos estructurados y transaccionales, y **MongoDB** para la bitácora de actividad, los escaneos de códigos QR, las reseñas de productos y las fichas técnicas con atributos variables. Ver [Integración NoSQL (MongoDB)](#integración-nosql-mongodb). La justificación del modelo documental está en [`docs/Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf`](docs/Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf).
 
 ## Contenido
@@ -17,12 +19,13 @@ Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los da
 - [Pruebas con Postman](#pruebas-con-postman)
 - [Pruebas automáticas (pytest)](#pruebas-automáticas-pytest)
 - [Evidencias de pruebas](#evidencias-de-pruebas)
+- [Seguridad: autenticación y roles (Entrega 3)](#seguridad-autenticación-y-roles-entrega-3)
+- [Documentación de la API (Swagger)](#documentación-de-la-api-swagger)
 - [Integración NoSQL (MongoDB)](#integración-nosql-mongodb)
 - [Tienda web](#tienda-web)
 - [Endpoints](#endpoints)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Reglas de negocio implementadas](#reglas-de-negocio-implementadas)
-- [Pendiente](#pendiente)
 
 ## Tecnologías
 
@@ -32,8 +35,9 @@ Desde la **Entrega 2** la API usa **persistencia políglota**: MySQL para los da
 | Framework | Flask 3.0 |
 | ORM | Flask-SQLAlchemy 3.1 / SQLAlchemy 2.0 |
 | Base de datos relacional | MySQL 8.0 (driver PyMySQL) |
-| Base de datos documental (NoSQL) | MongoDB 7 o superior, probado con 7.0 y 9.0 (driver PyMongo 4.10) |
-| Autenticación | JWT (PyJWT) + bcrypt |
+| Base de datos documental (NoSQL) | MongoDB 7 o superior, probado con 7.0 y 9.0 en local y 8.0 en MongoDB Atlas (driver PyMongo 4.10) |
+| Autenticación | JWT HS256 (PyJWT) + bcrypt; roles ADMINISTRADOR, TRABAJADOR y CLIENTE |
+| Documentación de la API | OpenAPI 3.0 generado desde las rutas + Swagger UI (`/api/docs`) |
 | Servidor de producción | Gunicorn |
 | Pruebas de endpoints | Postman |
 
@@ -111,7 +115,7 @@ Si aparece `Can't connect to MySQL server`, el servicio puede estar detenido:
 
 No hay que crear la base ni las colecciones: la API crea la base `solsticio`, sus colecciones e índices la primera vez que arranca.
 
-> **Alternativa sin instalar nada:** crear un clúster gratuito M0 en [MongoDB Atlas](https://www.mongodb.com/atlas) y usar su cadena de conexión `mongodb+srv://...` en `MONGO_URI`. Con Docker: `docker run -d --name mongo -p 27017:27017 mongo:7`.
+> **Alternativa sin instalar nada:** usar un clúster gratuito M0 en [MongoDB Atlas](https://www.mongodb.com/atlas). Los pasos están en [MongoDB en Atlas](#mongodb-en-atlas). Con Docker: `docker run -d --name mongo -p 27017:27017 mongo:7`.
 
 Si el servicio está detenido: `Win + R` → `services.msc` → **MongoDB** → **Iniciar**.
 
@@ -261,6 +265,14 @@ flask --app app crear-admin
 
 El comando pide email, documento, nombres, apellidos y contraseña (dos veces). Con ese email y contraseña se inicia sesión en Postman y en el [panel del personal](#panel-del-personal-panel).
 
+> **¿Tu base es de antes de la Entrega 3?** No vuelvas a correr el script completo (borraría tus datos). Basta con agregar el rol `CLIENTE`:
+>
+> ```bash
+> mysql -u root -p solsticio < database/migraciones/001_rol_cliente.sql
+> ```
+>
+> En Workbench: abrir ese archivo y ejecutarlo con el rayo. Es seguro repetirlo.
+
 ### 6.1 Cargar el catálogo de ejemplo (opcional)
 
 Para ver la tienda con prendas, existencias, fichas técnicas y opiniones:
@@ -269,7 +281,7 @@ Para ver la tienda con prendas, existencias, fichas técnicas y opiniones:
 flask --app app sembrar-demo
 ```
 
-Crea 6 categorías y 12 prendas con ilustración, sus tallas y colores, existencias repartidas en las sedes (cada una con su movimiento de ingreso), fichas técnicas y opiniones en MongoDB. Se puede ejecutar varias veces: no duplica nada.
+Crea 6 categorías y 12 prendas con ilustración, sus tallas y colores, existencias repartidas en las sedes (cada una con su movimiento de ingreso), fichas técnicas y opiniones en MongoDB. Se puede ejecutar varias veces: no duplica nada. Si no tienes MongoDB instalado, `flask --app app sembrar-demo --sin-mongo` carga solo la parte de MySQL.
 
 ### 7. Levantar el servidor
 
@@ -282,6 +294,8 @@ Abre **http://127.0.0.1:5000** en el navegador: ahí está la [tienda web](#tien
 ```json
 {"api": "Solsticio", "version": "v1", "base": "/api/v1"}
 ```
+
+La documentación interactiva de la API queda en **http://127.0.0.1:5000/api/docs**.
 
 Para detener el servidor, pulsa `Ctrl + C`.
 
@@ -351,14 +365,18 @@ python scripts/flujo_demo_nosql.py
 
 ## Pruebas automáticas (pytest)
 
-47 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
+98 pruebas de integración contra **MySQL y MongoDB reales**. Usan bases aparte llamadas `solsticio_test`, que se crean y se vacían solas, así que **no tocan tus datos de desarrollo**. Toman el usuario, la clave y el puerto de MySQL del `.env`.
 
 ```bash
 pip install -r requirements-dev.txt
 pytest
 ```
 
-No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar encendidos. Si alguno no responde, las pruebas se marcan como omitidas (`skipped`) en vez de fallar.
+No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar encendidos. Si MySQL no responde, todas se omiten (`skipped`). Si solo falta MongoDB, igual corren las 51 marcadas `solo_mysql` (seguridad, documentación, devoluciones y reportes) y se omiten las demás. Para correr solo esas:
+
+```bash
+pytest -m solo_mysql
+```
 
 | Archivo | Qué comprueba |
 |---|---|
@@ -367,12 +385,16 @@ No hace falta que la API esté corriendo, pero MySQL y MongoDB sí deben estar e
 | `test_combinados.py` | Perfil (MySQL) + últimas 10 actividades (MongoDB), bitácora con errores y parámetros, escaneos QR, ranking de QR con stock, producto completo |
 | `test_degradacion.py` | Con MongoDB caído la API arranca, MySQL sigue respondiendo, `/completo` devuelve `nosql_disponible: false` y los endpoints NoSQL responden 503 |
 | `test_web.py` | La tienda se sirve en `/`, sus CSS y JS cargan, y `/productos?sede=` cuenta el stock de una sola sede |
+| `test_seguridad.py` | **Entrega 3.** Registro (hash bcrypt en MySQL, duplicados, contraseña débil); login correcto e incorrecto con el mismo mensaje; tokens alterados, sin firma, firmados con otra clave o vencidos (401); rol leído de la base y no del token; usuario desactivado; matriz de permisos de los 3 roles (403); trabajador limitado a su sede; compra web del cliente con su cuenta y aislamiento de "mis pedidos" (404 al pedir uno ajeno) |
+| `test_devoluciones.py` | Devolución que reintegra el stock en la sede que recibe (no en la que vendió) y emite la nota crédito validada; cambio de talla con dos movimientos (DEVOLUCION y VENTA) y nota en $0; no se devuelve más de lo comprado; pedido sin pagar; cambio a otra prenda o más cara; permisos por sede y rol; solicitud del cliente que no mueve stock hasta que la tienda la completa, y rechazo que libera las unidades |
+| `test_reportes.py` | Reporte de ventas (solo pedidos pagados, devoluciones restadas por su nota crédito, por canal y por día), filtro por canal y periodo sin ventas; prendas más vendidas con su talla más vendida; rotación de inventario con el stock reconstruido desde los movimientos; validación de fechas, canal y sede; solo el administrador |
+| `test_documentacion.py` | Toda ruta de `/api/v1` está descrita en el OpenAPI, los roles documentados salen de los decoradores y `/api/docs` carga |
 | `test_panel_api.py` | Listados para el panel (traslados, usuarios, opiniones para moderar, prendas desactivadas), activar y desactivar usuarios, y las páginas `/escanear`, `/carrito` y `/panel` |
 
 Resultado esperado:
 
 ```
-47 passed
+98 passed
 ```
 
 ## Recorrido de la interfaz (Playwright)
@@ -398,7 +420,8 @@ Corre sobre bases aparte llamadas `solsticio_e2e` y una API en el puerto 5001, a
 ```powershell
 pip install -r requirements-dev.txt
 .\e2e\preparar_entorno.ps1          # crea solsticio_e2e, carga el catálogo y levanta la API en :5001
-python e2eecorrido_interfaz.py     # corre los 33 pasos
+python e2e
+ecorrido_interfaz.py     # corre los 33 pasos
 .\e2eorrar_entorno.ps1            # apaga la API de pruebas y borra las bases solsticio_e2e
 ```
 
@@ -522,6 +545,110 @@ Algunas respuestas son **409 Conflict** a propósito: las peticiones se ejecutar
 ![Crear sede](docs/imagenes/30-admin-sede-409.png)
 ![Crear usuario](docs/imagenes/31-admin-usuario-409.png)
 
+## Seguridad: autenticación y roles (Entrega 3)
+
+### Cómo funciona
+
+1. **Registro** (`POST /api/v1/auth/registro`, público). El comprador crea su cuenta y, en una sola transacción, se guardan dos filas:
+   - en `usuario`, con rol `CLIENTE` y la contraseña cifrada con **bcrypt** (con sal y costo 12);
+   - en `cliente`, su ficha de comprador, enlazada por `cliente.id_usuario`.
+
+   Si ya había comprado sin cuenta con ese documento, la cuenta se enlaza a ese historial, pero solo si el correo coincide.
+2. **Inicio de sesión** (`POST /api/v1/auth/login`). Busca el correo en MySQL y compara la contraseña con `bcrypt.checkpw`. Si el correo no existe, compara igual contra un hash de relleno y responde el mismo mensaje. Así no se revela qué correos están registrados.
+3. **Token JWT**. El login devuelve un JWT HS256 firmado con `SECRET_KEY`. Lleva `sub` (id del usuario), `rol`, `id_sede`, `iat` y `exp`, y vence a los 60 minutos por defecto (`ACCESS_TOKEN_EXPIRE_MINUTES`).
+4. **Rutas protegidas**. Cada petición envía `Authorization: Bearer <token>` y el decorador `requiere_auth(*roles)` (`api/seguridad.py`):
+   - verifica la firma y la expiración del token;
+   - **vuelve a leer el usuario de MySQL** y revisa que siga activo;
+   - comprueba que su rol esté permitido en esa ruta.
+
+   Por eso desactivar un usuario o cambiarle el rol surte efecto de inmediato, aunque su token no haya vencido.
+
+| Situación | Respuesta |
+|---|---|
+| Sin token, token mal formado, firma alterada, otra clave, `alg: none` o token vencido | `401` |
+| Token válido pero el rol no tiene permiso | `403` |
+| Trabajador que pide datos de otra sede | `403` |
+| Cliente que pide un pedido que no es suyo | `404` (no se confirma que exista) |
+
+### Roles y permisos (RBAC)
+
+| Caso de uso | Público | CLIENTE | TRABAJADOR | ADMINISTRADOR |
+|---|:-:|:-:|:-:|:-:|
+| Explorar catálogo, escanear QR, ver disponibilidad | ✔ | ✔ | ✔ | ✔ |
+| Compra virtual (pedido WEB y pago) | ✔ con sus datos | ✔ con su cuenta | | |
+| Ver **mis pedidos** y su estado (`/cuenta/pedidos`) | | ✔ | | |
+| Venta en tienda (pedido TIENDA, cobro, factura) | | | ✔ su sede | ✔ |
+| Consultar stock, ingresos, despachar y recibir traslados | | | ✔ su sede | ✔ |
+| Ajustes de inventario, movimientos, crear traslados | | | | ✔ |
+| Productos, variantes, categorías, sedes y usuarios | | | | ✔ |
+| Moderar reseñas, bitácora y reportes (ventas, más vendidas, rotación, QR) | | | | ✔ |
+
+En el código, cada ruta declara quién puede usarla: `@requiere_auth(ADMINISTRADOR)`, `@requiere_auth(*PERSONAL)` o `@requiere_auth(CLIENTE)`.
+
+- El administrador solo crea cuentas del personal. El rol `CLIENTE` se obtiene únicamente con el registro público.
+- En la interfaz, el cliente entra por **`/cuenta`** y el personal por **`/panel`**. Si un cliente intenta entrar al panel, se le manda a su cuenta.
+
+### Script de prueba
+
+`scripts/prueba_autenticacion.py` prueba la autenticación de punta a punta con la API encendida:
+
+```bash
+python scripts/prueba_autenticacion.py
+```
+
+Recorre seis pasos:
+
+1. Registra un cliente nuevo.
+2. Lee directamente de MySQL la fila de `usuario` (con el hash bcrypt) y la de `cliente`.
+3. Prueba el login con la contraseña correcta y con una equivocada.
+4. Decodifica el JWT y muestra su cabecera y su payload.
+5. Intenta entrar sin token, con la firma alterada y con un token editado para decir `ADMINISTRADOR`.
+6. Cruza los tres roles con rutas de cada nivel.
+
+Si el servidor o el administrador no son los de por defecto, define `SOLSTICIO_URL`, `SOLSTICIO_EMAIL` y `SOLSTICIO_PASSWORD`. El script termina con `Todo correcto`, o con código 1 si algo falla.
+
+### Evidencias de ejecución (Entrega 3)
+
+Las capturas están en `docs/imagenes/entrega3/`. Se tomaron con la API en local, sobre la base aparte `solsticio_e2e`.
+
+| Evidencia | Qué muestra |
+|---|---|
+| ![Registro y login](docs/imagenes/entrega3/70-tienda-registro-login.png) | `/cuenta`: entrar o crear cuenta |
+| ![Contraseña débil](docs/imagenes/entrega3/71-tienda-registro-clave-debil.png) | El servidor rechaza una contraseña sin números (422) |
+| ![Cuenta nueva](docs/imagenes/entrega3/72-tienda-cuenta-sin-pedidos.png) | Cuenta creada: sesión iniciada con el token |
+| ![Carrito con sesión](docs/imagenes/entrega3/73-tienda-carrito-con-sesion.png) | El carrito usa la cuenta y no pide los datos otra vez |
+| ![Compra](docs/imagenes/entrega3/74-tienda-compra-confirmada.png) | Pedido pagado con la cuenta del cliente |
+| ![Mis pedidos](docs/imagenes/entrega3/75-tienda-mis-pedidos.png) | "Mis pedidos": solo los del cliente, con estado y QR |
+| ![Panel rechaza cliente](docs/imagenes/entrega3/76-panel-rechaza-cliente.png) | Un cliente no puede entrar al panel del personal |
+| ![Script](docs/imagenes/entrega3/77-terminal-prueba-autenticacion.png) | `scripts/prueba_autenticacion.py`: hash en MySQL, JWT, 401 y 403 |
+| ![pytest](docs/imagenes/entrega3/78-terminal-pytest-seguridad.png) | `pytest tests/test_seguridad.py tests/test_documentacion.py`: las 35 pruebas de autenticación, JWT, roles y documentación |
+| ![Solicitar devolución](docs/imagenes/entrega3/87-tienda-solicitar-devolucion.png) | El cliente pide devolver una de las dos camisetas desde *Mis pedidos* |
+| ![Mis devoluciones](docs/imagenes/entrega3/88-tienda-mis-devoluciones.png) | La solicitud queda *Solicitada* hasta que la sede reciba la prenda |
+| ![Lista de devoluciones](docs/imagenes/entrega3/89-panel-devoluciones-lista.png) | Panel › Devoluciones: la solicitud del cliente por atender |
+| ![Devolución completada](docs/imagenes/entrega3/90-panel-devolucion-completada.png) | Al recibir la prenda: movimiento DEVOLUCION (+1) y nota crédito NC-SOL-0001 validada |
+| ![Registrar cambio](docs/imagenes/entrega3/91-panel-registrar-cambio.png) | Cambio de talla registrado desde el pedido: solo ofrece la misma prenda y muestra el stock de la sede |
+| ![Cambio](docs/imagenes/entrega3/92-panel-cambio-movimientos-nota.png) | El cambio genera dos movimientos (DEVOLUCION +1 y VENTA −1) y una nota crédito en $0 |
+| ![Reporte de ventas](docs/imagenes/entrega3/97-panel-reporte-ventas.png) | Panel › Reportes › Ventas: ingresos netos, pedidos pagados, ticket promedio y devoluciones; por canal y por día, con filtros de fechas, sede y canal |
+| ![Más vendidas](docs/imagenes/entrega3/98-panel-reporte-mas-vendidas.png) | Prendas más vendidas del periodo, con unidades, ingresos y talla más vendida |
+| ![Rotación](docs/imagenes/entrega3/99-panel-reporte-rotacion.png) | Rotación de inventario: unidades vendidas frente a existencias promedio, días de inventario y clasificación |
+| ![Swagger](docs/imagenes/entrega3/80-swagger-portada.png) | `/api/docs`: autenticación, roles y errores |
+| ![Registro en Swagger](docs/imagenes/entrega3/81-swagger-registro-201.png) | Registro desde Swagger: 201 con el token |
+| ![Authorize](docs/imagenes/entrega3/82-swagger-authorize.png) | Botón *Authorize* con el token del cliente |
+| ![403](docs/imagenes/entrega3/83-swagger-cliente-usuarios-403.png) | El cliente pide `/usuarios`: 403 |
+| ![200](docs/imagenes/entrega3/84-swagger-cliente-mis-pedidos-200.png) | El cliente pide `/cuenta/pedidos`: 200 |
+
+## Documentación de la API (Swagger)
+
+Con el servidor encendido hay dos direcciones:
+
+- **http://127.0.0.1:5000/api/docs**: Swagger UI. Para probar un endpoint protegido: *Authorize*, pegar el `access_token` y luego *Try it out*.
+- **http://127.0.0.1:5000/api/openapi.json**: la especificación OpenAPI 3.0. Se puede importar en Postman con *Import → Link*.
+
+La especificación se arma desde las rutas reales de Flask (`api/documentacion.py`):
+
+- Los permisos de cada operación (`x-roles` y el texto *Acceso*) se leen de los decoradores de `api/seguridad.py`, así que no pueden contradecir al código.
+- `tests/test_documentacion.py` falla si se agrega una ruta sin describirla.
+
 ## Integración NoSQL (MongoDB)
 
 ### Qué va en cada base
@@ -591,6 +718,46 @@ Evento de la bitácora (se guarda solo en `after_request`, sin código extra en 
 
 Si MongoDB está caído, `/productos/{id}/completo` responde igual con la parte de MySQL y `"nosql_disponible": false`.
 
+### MongoDB en Atlas
+
+La API funciona igual con MongoDB local o con un clúster en la nube de **MongoDB Atlas**. Lo único que cambia es `MONGO_URI` en el `.env`. Se probó con el clúster gratuito `Cluster0` (M0, AWS N. Virginia, MongoDB 8.0, réplica de 3 nodos).
+
+1. **Crear el clúster.** En [cloud.mongodb.com](https://cloud.mongodb.com): *Create* → plan **Free (M0)** → proveedor y región → *Create Deployment*.
+2. **Crear el usuario de la base.** *Security → Database Access* → *Add New Database User* → contraseña (con *Autogenerate Secure Password* sale sin símbolos raros) → rol *Read and write to any database*.
+3. **Abrir el acceso de red.** *Security → Network Access* → *Add Current IP Address* (o `0.0.0.0/0` solo para una práctica).
+4. **Copiar la cadena de conexión.** *Clusters → Connect → Drivers → Python*.
+5. **Ponerla en el `.env`**, cambiando `<db_password>` por la contraseña del usuario:
+
+   ```
+   MONGO_URI=mongodb+srv://USUARIO:CONTRASEÑA@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+   MONGO_DB=solsticio
+   ```
+
+   Si la contraseña tiene `@`, `:` o `/`, se codifica con `urllib.parse.quote_plus()`. El `.env` no se sube a git.
+6. **Verificar y cargar datos:**
+
+   ```bash
+   flask --app app verificar-mongo     # crea la base, las colecciones y los índices en Atlas
+   flask --app app sembrar-demo        # fichas técnicas y opiniones de ejemplo
+   ```
+
+No hay que crear la base ni las colecciones a mano: la API las crea, con sus índices (incluidos los TTL de la bitácora y los escaneos), la primera vez que se conecta. Las pruebas también corren contra Atlas: `pytest` usa allí una base aparte, `solsticio_test`. Para volver a lo local basta con regresar `MONGO_URI` a `mongodb://localhost:27017`.
+
+Para ver un resumen de la base (servidor, colecciones, índices, una reseña, el ranking de QR y la bitácora) sin que se muestren las credenciales:
+
+```bash
+python scripts/resumen_mongo.py
+```
+
+| Evidencia | Qué muestra |
+|---|---|
+| ![Base en Atlas](docs/imagenes/entrega3/85-terminal-mongodb-atlas.png) | `scripts/resumen_mongo.py` conectado a `cluster0.hqzgmi9.mongodb.net`: réplica de 3 nodos, las 4 colecciones con sus índices, una reseña, el ranking de QR por agregación y la bitácora |
+| ![pytest en Atlas](docs/imagenes/entrega3/86-terminal-pytest-atlas.png) | `pytest` con MongoDB en Atlas y MySQL local: 98 pruebas aprobadas |
+| ![Cluster0 en la consola de Atlas](docs/imagenes/entrega3/93-atlas-cluster0.png) | Consola de Atlas, proyecto NTD20262: Cluster0 activo, nivel gratuito, MongoDB 8.0.37 en AWS |
+| ![Colecciones en el Data Explorer](docs/imagenes/entrega3/94-atlas-colecciones.png) | Data Explorer: la base `solsticio` con sus 4 colecciones, el número de documentos y de índices de cada una |
+| ![Documentos de reseñas](docs/imagenes/entrega3/95-atlas-resenas-documentos.png) | Documentos de `resenas_producto` en Atlas, con subdocumentos (`autor`, `atributos`) y arreglos (`respuestas`) |
+| ![Índices de reseñas](docs/imagenes/entrega3/96-atlas-resenas-indices.png) | Índices de `resenas_producto`: `producto_estado_fecha` (compuesto) y `producto_autor` (único y compuesto), todos en estado READY |
+
 ### Evidencias de ejecución (Entrega 2)
 
 Hay dos juegos de evidencias:
@@ -629,6 +796,8 @@ Hay dos juegos de evidencias:
 
 ![verificar-mongo](docs/imagenes/nosql/50-verificar-mongo.png)
 ![Documentos en mongosh](docs/imagenes/nosql/51-mongosh-documentos.png)
+
+En mongosh, contra la base en Atlas: las colecciones, una ficha técnica con atributos anidados, una reseña con subdocumentos y los índices de la bitácora; `ttl_fecha` borra los registros a los 15.552.000 segundos (180 días).
 
 **Endpoints combinados SQL + NoSQL**
 
@@ -695,8 +864,10 @@ La carpeta `web/` tiene toda la interfaz: páginas HTML, CSS y JavaScript que Fl
 | `/` | Catálogo con búsqueda, filtros y "solo lo que hay en mi sede"; el título cambia con la sede ("Lo que hay hoy en Chapinero") | `GET /sedes`, `/categorias`, `/productos?sede=` |
 | `/producto?id=N` | Precio, tallas y colores, disponibilidad por sede, agregar al carrito, ficha técnica como etiqueta de ropa y opiniones (ver, ordenar, votar y escribir) | `GET /productos/{id}/completo` (MySQL + MongoDB), `GET`/`POST /productos/{id}/resenas`, `POST /resenas/{id}/util` |
 | `/escanear` | Lee el QR de la etiqueta con la cámara (navegadores con `BarcodeDetector`, como Chrome en Android) o con el código escrito; cada lectura queda en `escaneos_qr` | `GET /variantes/qr/{codigo}?sede=` |
+| `/cuenta` | **Entrega 3.** Crear cuenta o entrar (rol CLIENTE), ver *Mis pedidos* con su estado y el QR para recoger, **solicitar una devolución o un cambio** y seguir su estado | `POST /auth/registro`, `POST /auth/login`, `GET /auth/perfil`, `GET /cuenta/pedidos`, `POST /cuenta/pedidos/{id}/devoluciones`, `GET /cuenta/devoluciones` |
 | `/carrito` | Carrito, datos del cliente, recoger en tienda o domicilio, pago con la pasarela simulada (también se puede simular un rechazo) y tiquete con el QR del pedido y la factura | `GET /metodos-pago`, `POST /pedidos` (canal WEB), `POST /pedidos/{id}/pagos` |
 
+- Con la sesión de cliente iniciada, el carrito no pide los datos del comprador: el pedido queda en su cuenta.
 - La sede elegida y el carrito se recuerdan en el navegador. El pedido web sale de la sede elegida, así que solo deja agregar lo que hay allí; si algo se agotó, la API responde 409 y la página dice en qué otras sedes hay.
 - Si MongoDB no responde, el detalle sigue mostrando precio y disponibilidad, y avisa que las opiniones no están disponibles.
 - El texto que escriben los clientes se inserta con `textContent`, nunca como HTML.
@@ -710,6 +881,7 @@ Se entra con el correo y la contraseña de un usuario del sistema. El menú camb
 | Inicio | Pedidos por cobrar y por preparar, traslados en camino, referencias agotadas, últimos pedidos; para administración también la actividad reciente (MongoDB) y lo más escaneado | Ambos |
 | Mostrador | Venta en tienda: agregar prendas por código QR o nombre (muestra existencias de la sede), cliente opcional para la factura, cobro y recibo con factura y QR | Ambos |
 | Pedidos | Lista con filtros y búsqueda por código; detalle con prendas, cliente, envío, pagos y factura; cobrar, preparar, enviar (transportadora y guía), entregar, cancelar y emitir factura | Ambos |
+| Devoluciones | Registrar una devolución o un cambio de talla buscando el pedido por su código (desde la lista o desde el detalle del pedido); atender o rechazar las solicitudes de los clientes; detalle con los movimientos de inventario y la nota crédito | Ambos |
 | Inventario | Existencias por sede (disponibles y reservadas), registrar ingresos; ajustes por conteo físico e historial de movimientos | Ambos / Administración |
 | Traslados | Lista, detalle con avance, despachar (sede de origen) y recibir (sede de destino); crear traslados | Ambos / Administración |
 | Prendas | Crear y editar, desactivar y reactivar; tallas y colores; **editor de ficha técnica** (MongoDB) con vista previa de la etiqueta; **etiquetas QR para imprimir** y colgar en las prendas | Administración |
@@ -717,7 +889,7 @@ Se entra con el correo y la contraseña de un usuario del sistema. El menú camb
 | Opiniones | Moderación: responder como tienda, ocultar o publicar, eliminar | Administración |
 | Usuarios | Crear, activar o desactivar el acceso, ver la actividad de cada uno | Administración |
 | Bitácora | Actividad de todos los usuarios (MongoDB) con filtros por usuario, acción, resultado y fechas | Administración |
-| Reportes | Prendas más escaneadas por periodo, con existencias de MySQL | Administración |
+| Reportes | Ventas por periodo, sede y canal; prendas más vendidas; rotación de inventario; prendas más escaneadas (MongoDB) con existencias de MySQL | Administración |
 | Mi perfil | Datos del usuario (MySQL) y sus últimas acciones (MongoDB): el endpoint combinado `/auth/perfil/actividad` | Ambos |
 
 El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pestaña o cuando vence el token, y entonces el panel vuelve a pedir el inicio de sesión. Las etiquetas QR codifican la dirección `/escanear?codigo=SOL-V-…`, así que cualquier celular las abre con la cámara normal.
@@ -730,6 +902,7 @@ El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pesta�
 
 | Módulo | Método | Ruta | Acceso |
 |---|---|---|---|
+| Autenticación | POST | `/api/v1/auth/registro` | Público (crea un CLIENTE) |
 | Autenticación | POST | `/api/v1/auth/login` | Público |
 | Autenticación | GET | `/api/v1/auth/perfil` | Autenticado |
 | Catálogo | GET | `/api/v1/categorias` | Público |
@@ -747,8 +920,20 @@ El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pesta�
 | Inventario | GET | `/api/v1/traslados/{id_traslado}` | Trabajador |
 | Inventario | PATCH | `/api/v1/traslados/{id_traslado}/despachar` | Trabajador |
 | Inventario | PATCH | `/api/v1/traslados/{id_traslado}/recibir` | Trabajador |
-| Pedidos | POST | `/api/v1/pedidos` | Público (WEB) / Trabajador (TIENDA) |
+| Cuenta | GET | `/api/v1/cuenta/pedidos` | Cliente |
+| Cuenta | GET | `/api/v1/cuenta/pedidos/{id_pedido}` | Cliente (solo los suyos) |
+| Pedidos | POST | `/api/v1/pedidos` | Público o Cliente (WEB) / Trabajador (TIENDA) |
 | Pedidos | GET | `/api/v1/pedidos` | Trabajador |
+| Devoluciones | POST | `/api/v1/devoluciones` | Trabajador (en su sede) |
+| Devoluciones | GET | `/api/v1/devoluciones` | Trabajador |
+| Devoluciones | GET | `/api/v1/devoluciones/{id_devolucion}` | Trabajador |
+| Devoluciones | PATCH | `/api/v1/devoluciones/{id_devolucion}` (completar o rechazar una solicitud) | Trabajador |
+| Devoluciones | GET | `/api/v1/devoluciones/pedido?codigo=` | Trabajador (cualquier sede) |
+| Reportes | GET | `/api/v1/reportes/ventas?desde=&hasta=&id_sede=&canal=` | Administrador |
+| Reportes | GET | `/api/v1/reportes/productos-mas-vendidos?desde=&hasta=&limite=&id_sede=` | Administrador |
+| Reportes | GET | `/api/v1/reportes/rotacion-inventario?desde=&hasta=&id_sede=` | Administrador |
+| Cuenta | POST | `/api/v1/cuenta/pedidos/{id_pedido}/devoluciones` | Cliente (solo sus pedidos) |
+| Cuenta | GET | `/api/v1/cuenta/devoluciones` | Cliente |
 | Pedidos | GET | `/api/v1/pedidos/{id_pedido}` | Trabajador |
 | Pedidos | GET | `/api/v1/pedidos/qr/{codigo_qr}` | Trabajador |
 | Pedidos | PATCH | `/api/v1/pedidos/{id_pedido}/estado` | Trabajador |
@@ -784,7 +969,7 @@ El token se guarda en `sessionStorage`: la sesión se cierra al cerrar la pesta�
 | **SQL + NoSQL** | GET | `/api/v1/productos/buscar-atributos` | Público |
 | **SQL + NoSQL** | GET | `/api/v1/reportes/qr-mas-escaneados` | Administrador |
 
-"Trabajador" incluye también al administrador. Los errores responden `{"detail": "mensaje"}` con el código HTTP correspondiente (400, 401, 402, 403, 404, 409, 422, y 503 si una base no está disponible). `GET /api/v1/variantes/qr/{codigo_qr}` ahora también registra cada escaneo en MongoDB.
+"Trabajador" incluye también al administrador; "Cliente" es solo el rol CLIENTE. La lista completa, con parámetros y ejemplos, está en `/api/docs`. Los errores responden `{"detail": "mensaje"}` con el código HTTP correspondiente (400, 401, 402, 403, 404, 409, 422, y 503 si una base no está disponible). `GET /api/v1/variantes/qr/{codigo_qr}` ahora también registra cada escaneo en MongoDB.
 
 ## Estructura del proyecto
 
@@ -800,25 +985,28 @@ api/
   nosql.py                 # conexión a MongoDB, colecciones e índices
   demo.py                  # catálogo de ejemplo (flask sembrar-demo)
   modelos.py               # modelos Flask-SQLAlchemy (reflejan database/solsticio_schema.sql)
-  seguridad.py             # JWT, bcrypt y control de roles y sedes
+  seguridad.py             # JWT, bcrypt y control de roles (ADMINISTRADOR, TRABAJADOR, CLIENTE) y sedes
+  documentacion.py         # OpenAPI 3.0 (/api/openapi.json) y Swagger UI (/api/docs)
   validacion.py            # validación de datos de entrada
   serializadores.py        # conversión de modelos a JSON
   errores.py               # ErrorApi y manejadores -> {"detail": "..."}
   comandos.py              # flask verificar-bd / verificar-mongo / crear-admin / sembrar-demo
   rutas/                   # capa HTTP: un blueprint por módulo, bajo /api/v1
-    auth.py  catalogo.py  inventario.py  pedidos.py  admin.py      # MySQL
+    auth.py  cuenta.py  catalogo.py  inventario.py  pedidos.py  devoluciones.py  reportes.py  admin.py   # MySQL
     actividad.py  resenas.py  fichas.py                            # MongoDB y combinados
     web.py                                                         # sirve la tienda (web/)
   servicios/               # lógica de negocio y transacciones
-    comun.py  inventario.py  traslados.py  pedidos.py  facturacion.py  catalogo.py  usuarios.py
+    comun.py  inventario.py  traslados.py  pedidos.py  devoluciones.py  reportes.py  facturacion.py  catalogo.py  usuarios.py
     actividad.py  resenas.py  fichas.py                            # MongoDB
 database/
   solsticio_schema.sql     # script de creación de la base de datos (23 tablas)
+  migraciones/001_rol_cliente.sql   # agrega el rol CLIENTE a una base de antes de la Entrega 3
 docs/
   Entrega2_NoSQL_Solsticio_Joan_Lara_Miguel_Marin.pdf   # documento de la Entrega 2 (estructura NoSQL y justificación)
   imagenes/                # capturas de las pruebas en Postman
     nosql/                 # evidencias de la Entrega 2 (respuestas de la API)
     entrega2/              # evidencias del PDF (interfaz, terminal y pruebas)
+    entrega3/              # evidencias de seguridad: registro, roles, script, pytest y Swagger
   diagramas/               # diagramas de casos de uso
     entrega2/              # arquitectura y modelo de datos del PDF (HTML editable + PNG)
   Solsticio_Modelo_Datos.md, solsticio_dbdiagram.dbml
@@ -826,14 +1014,17 @@ postman/
   Solsticio.postman_collection.json
 scripts/
   flujo_demo_nosql.py      # recorre todos los endpoints NoSQL y combinados
+  prueba_autenticacion.py  # Entrega 3: registro, login contra MySQL, JWT y roles
+  resumen_mongo.py         # resumen de la base NoSQL (local o Atlas) sin mostrar credenciales
 tests/                     # pruebas automáticas con pytest (MySQL + MongoDB reales)
   conftest.py  test_fichas.py  test_resenas.py  test_combinados.py  test_degradacion.py  test_web.py  test_panel_api.py
+  test_seguridad.py  test_documentacion.py  test_devoluciones.py  test_reportes.py   # Entrega 3
 e2e/                       # recorrido de la interfaz con Playwright (bases solsticio_e2e)
   preparar_entorno.ps1  recorrido_interfaz.py  borrar_entorno.ps1  comun.ps1
 web/                       # interfaz (HTML + CSS + JS) servida por Flask
-  index.html  producto.html  escanear.html  carrito.html  panel.html
+  index.html  producto.html  escanear.html  carrito.html  cuenta.html  panel.html
   recursos/css/            # estilos.css (tienda y base), panel.css
-  recursos/js/             # comun.js, etiqueta.js, catalogo.js, producto.js, escanear.js, carrito.js
+  recursos/js/             # comun.js, etiqueta.js, catalogo.js, producto.js, escanear.js, carrito.js, cuenta.js
   recursos/js/panel/       # app.js (sesión y rutas), ui.js (componentes) y una sección por archivo
   recursos/img/            # favicon e ilustraciones de las prendas de ejemplo
   recursos/vendor/         # qrcode-generator (MIT)
@@ -845,25 +1036,24 @@ Flujo de una petición: **ruta** (valida permisos y datos) → **servicio** (reg
 
 ## Reglas de negocio implementadas
 
-- Toda variación de existencias genera una fila en `movimiento_inventario` (INGRESO, VENTA, TRASLADO_SALIDA, TRASLADO_ENTRADA, AJUSTE).
+- Reportes (caso de uso 2.3.9): una venta cuenta cuando el pedido quedó pagado; los montos salen de los totales históricos de cada pedido, no del precio actual; las devoluciones se restan por el monto de su nota crédito; la rotación de inventario es unidades vendidas ÷ existencias promedio del periodo, con el stock de cada fecha reconstruido desde `movimiento_inventario`.
+
+- Toda variación de existencias genera una fila en `movimiento_inventario` (INGRESO, VENTA, DEVOLUCION, TRASLADO_SALIDA, TRASLADO_ENTRADA, AJUSTE).
 - Un pedido descuenta stock solo de su sede. Si no hay existencias, responde 409 con las sedes alternativas.
 - Al crear el pedido las unidades quedan reservadas y se descuentan cuando el pago se aprueba. Si el pago se rechaza, la reserva se libera.
 - El precio unitario del pedido es histórico: cambiar el precio del catálogo no altera ventas anteriores.
 - Un traslado genera dos movimientos: salida al despachar y entrada al recibir. Origen y destino no pueden ser la misma sede.
 - Un trabajador solo opera sobre su sede; el administrador es global.
 - Si la DIAN (simulada) falla, la factura queda PENDIENTE sin bloquear la venta.
+- Una devolución reintegra el stock en la sede donde se recibe, no necesariamente en la que vendió.
+- Un cambio de talla o color genera dos movimientos: DEVOLUCION de la prenda que entra y VENTA de la que sale. Solo se cambia por la misma prenda y a un precio igual o menor.
+- Toda devolución completada emite una nota crédito sobre la factura del pedido (en un cambio, por la diferencia de precio) y la valida ante la DIAN simulada; si la DIAN falla, la nota queda PENDIENTE sin deshacer la devolución.
+- Cada unidad comprada se devuelve una sola vez. La solicitud del cliente no mueve stock hasta que la sede recibe las prendas; si se rechaza, las unidades vuelven a poder devolverse.
 - No hay borrado físico: los productos se desactivan.
 - Una reseña con `codigo_pedido` solo se acepta si ese pedido (MySQL) está pagado e incluye el producto; queda marcada como compra verificada.
 - Un mismo email solo puede publicar una reseña por producto (índice único en MongoDB).
 - MongoDB nunca guarda precios ni existencias: esos datos siempre se leen de MySQL.
 - Si MongoDB falla, ninguna operación de MySQL se cancela por ello.
-
-## Pendiente
-
-- Devoluciones y cambios (`/api/v1/devoluciones`) con nota crédito.
-- Más reportes (`/api/v1/reportes/...`); ya existe `qr-mas-escaneados`.
-- Registro público de clientes (`/api/v1/auth/registro`).
-- Seguimiento público del pedido para el cliente (hoy solo el personal consulta un pedido por su código).
 
 ## Autores
 

@@ -13,6 +13,9 @@ const RUTAS = [
   ["pedidos/:id", "pedido", false],
   ["inventario", "inventario", false],
   ["inventario/:vista", "inventario", false],
+  ["devoluciones", "devoluciones", false],
+  ["devoluciones/nueva", "devolucion-nueva", false],
+  ["devoluciones/:id", "devolucion", false],
   ["traslados", "traslados", false],
   ["traslados/nuevo", "traslado-nuevo", true],
   ["traslados/:id", "traslado", false],
@@ -25,11 +28,12 @@ const RUTAS = [
   ["usuarios", "usuarios", true],
   ["bitacora", "bitacora", true],
   ["reportes", "reportes", true],
+  ["reportes/:vista", "reportes", true],
   ["perfil", "perfil", false],
 ];
 
 const MENU = [
-  ["Operación", [["#/", "Inicio"], ["#/mostrador", "Mostrador"], ["#/pedidos", "Pedidos"], ["#/inventario", "Inventario"], ["#/traslados", "Traslados"]]],
+  ["Operación", [["#/", "Inicio"], ["#/mostrador", "Mostrador"], ["#/pedidos", "Pedidos"], ["#/devoluciones", "Devoluciones"], ["#/inventario", "Inventario"], ["#/traslados", "Traslados"]]],
   ["Catálogo", [["#/productos", "Prendas", true], ["#/maestros", "Categorías y sedes", true], ["#/opiniones", "Opiniones", true]]],
   ["Administración", [["#/usuarios", "Usuarios", true], ["#/bitacora", "Bitácora", true], ["#/reportes", "Reportes", true]]],
 ];
@@ -82,6 +86,12 @@ function pantallaLogin(mensaje) {
     boton.disabled = true;
     try {
       const r = await api("/auth/login", { metodo: "POST", cuerpo: datos });
+      if (r.usuario.rol === "CLIENTE") {
+        error.replaceChildren("El panel es solo para el personal. ",
+          el("a", { href: "/cuenta" }, "Entra a tu cuenta de cliente"), ".");
+        boton.disabled = false;
+        return;
+      }
       sesion.guardar(r.access_token, r.usuario, r.expira_en);
       await arrancar();
     } catch (e) {

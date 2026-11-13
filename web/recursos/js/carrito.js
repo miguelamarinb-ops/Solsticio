@@ -2,7 +2,7 @@
 // POST /pedidos con canal WEB y luego POST /pedidos/{id}/pagos con la pasarela
 // simulada. Si el pago se aprueba la API emite la factura sola.
 import {
-  api, carrito, el, foto, iniciarCabecera, marcarInvalidos, mostrarError, precio, qr,
+  api, carrito, el, foto, iniciarCabecera, marcarInvalidos, mostrarError, precio, qr, sesionCliente,
 } from "./comun.js";
 
 const raiz = document.getElementById("carrito");
@@ -78,9 +78,13 @@ function formularioPago(error) {
   const mensaje = el("div", { role: "alert" });
   if (error) mostrarError(mensaje, error);
 
-  const form = el("form", { class: "formulario formulario--pago", novalidate: true },
-    el("h2", {}, "Tus datos"),
-    el("div", { class: "campos" },
+  // Con sesión de cliente el pedido queda en su cuenta y no se piden sus datos.
+  const cuenta = sesionCliente.leer();
+  const datosComprador = cuenta
+    ? el("div", { class: "sesion-cliente" },
+      el("p", {}, "Compras con tu cuenta: ", el("strong", {}, `${cuenta.usuario.nombres} ${cuenta.usuario.apellidos}`)),
+      el("p", { class: "subtitulo" }, `${cuenta.usuario.email}. El pedido aparecerá en `, el("a", { href: "/cuenta" }, "Mi cuenta"), "."))
+    : el("div", { class: "campos" },
       el("div", { class: "campo" }, el("label", { for: "cli-tipo" }, "Tipo de documento"),
         el("select", { id: "cli-tipo", name: "tipo_documento" },
           el("option", { value: "CC" }, "Cédula de ciudadanía"), el("option", { value: "CE" }, "Cédula de extranjería"),
@@ -91,7 +95,12 @@ function formularioPago(error) {
       campo("Correo", { id: "cli-email", name: "email", type: "email", maxlength: 120, required: true, autocomplete: "email" },
         "Te enviamos aquí la factura electrónica."),
       campo("Celular (opcional)", { id: "cli-telefono", name: "telefono", type: "tel", maxlength: 20, autocomplete: "tel" }),
-    ),
+    );
+
+  const form = el("form", { class: "formulario formulario--pago", novalidate: true },
+    el("h2", {}, "Tus datos"),
+    cuenta ? null : el("p", { class: "subtitulo" }, "¿Ya tienes cuenta? ", el("a", { href: "/cuenta" }, "Entra"), " y no tendrás que escribirlos."),
+    datosComprador,
     el("fieldset", { class: "opciones" },
       el("legend", {}, "Entrega"),
       el("div", { class: "opciones__lista" },
@@ -122,9 +131,15 @@ function formularioPago(error) {
 // Devuelve [nombre del campo, texto para el mensaje] de cada dato que falta.
 function validar(datos) {
   const faltan = [];
+  if (sesionCliente.leer()) return faltan.concat(validarEnvio(datos));
   if (!datos.numero_documento?.trim()) faltan.push(["numero_documento", "el número de documento"]);
   if (!datos.nombres?.trim()) faltan.push(["nombres", "tus nombres"]);
   if (!datos.email?.includes("@")) faltan.push(["email", "un correo válido"]);
+  return faltan.concat(validarEnvio(datos));
+}
+
+function validarEnvio(datos) {
+  const faltan = [];
   if (datos.tipo_entrega === "DOMICILIO") {
     for (const [clave, texto] of [["direccion", "la dirección"], ["ciudad", "la ciudad"], ["destinatario", "quién recibe"], ["telefono_contacto", "el teléfono de contacto"]]) {
       if (!datos[clave]?.trim()) faltan.push([clave, texto]);
@@ -146,20 +161,28 @@ async function pagar(evento, form, mensaje) {
   boton.disabled = true;
   boton.textContent = "Procesando pago…";
 
+  const cuenta = sesionCliente.leer();
   const cuerpo = {
     canal: "WEB", id_sede: cabecera.sedeActual(), tipo_entrega: datos.tipo_entrega,
-    cliente: Object.fromEntries(["tipo_documento", "numero_documento", "nombres", "apellidos", "email", "telefono"]
-      .filter((k) => datos[k]?.trim()).map((k) => [k, datos[k].trim()])),
     items: carrito.items().map((i) => ({ id_variante: i.id_variante, cantidad: i.cantidad })),
   };
+  if (!cuenta) {
+    cuerpo.cliente = Object.fromEntries(["tipo_documento", "numero_documento", "nombres", "apellidos", "email", "telefono"]
+      .filter((k) => datos[k]?.trim()).map((k) => [k, datos[k].trim()]));
+  }
   if (datos.tipo_entrega === "DOMICILIO") {
     cuerpo.envio = Object.fromEntries(["direccion", "ciudad", "destinatario", "telefono_contacto"].map((k) => [k, datos[k].trim()]));
   }
 
   let pedido;
   try {
-    pedido = await api("/pedidos", { metodo: "POST", cuerpo });
+    pedido = await api("/pedidos", { metodo: "POST", cuerpo, token: cuenta?.token });
   } catch (error) {
+    if (error.estado === 401 && cuenta) {
+      sesionCliente.cerrar();
+      pintarCarrito(Object.assign(error, { message: "Tu sesión terminó. Entra de nuevo o compra con tus datos." }));
+      return;
+    }
     boton.disabled = false;
     boton.textContent = `Pagar ${precio(carrito.total())}`;
     if (error.estado === 409) error.message = `Algunas prendas ya no alcanzan en ${cabecera.nombreSede()}. Ajusta las cantidades o cambia de sede.`;
