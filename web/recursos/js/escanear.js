@@ -13,8 +13,20 @@ const estadoCamara = document.getElementById("estado-camara");
 let cabecera;
 let flujo = null;
 
+// Las etiquetas impresas guardan el enlace completo (.../escanear?codigo=SOL-V-...);
+// al leerlas con la cámara de esta página hay que sacar el código del enlace.
+function extraerCodigo(texto) {
+  texto = texto.trim();
+  try {
+    const desdeEnlace = new URL(texto).searchParams.get("codigo");
+    if (desdeEnlace) return desdeEnlace.toUpperCase();
+  } catch { /* no es un enlace: es el código escrito o leído tal cual */ }
+  return texto.toUpperCase();
+}
+
 async function consultar(codigo) {
-  codigo = codigo.trim().toUpperCase();
+  codigo = extraerCodigo(codigo);
+  campo.value = codigo;
   if (!codigo) return;
   resultado.replaceChildren(el("p", { class: "cargando" }, `Buscando ${codigo}…`));
   try {
