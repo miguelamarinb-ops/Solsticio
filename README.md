@@ -281,7 +281,9 @@ Para ver la tienda con prendas, existencias, fichas técnicas y opiniones:
 flask --app app sembrar-demo
 ```
 
-Crea 6 categorías y 12 prendas con ilustración, sus tallas y colores, existencias repartidas en las sedes (cada una con su movimiento de ingreso), fichas técnicas y opiniones en MongoDB. Se puede ejecutar varias veces: no duplica nada. Si no tienes MongoDB instalado, `flask --app app sembrar-demo --sin-mongo` carga solo la parte de MySQL.
+Crea 6 categorías y 12 prendas con ilustración, sus tallas y colores, existencias repartidas en las sedes (cada una con su movimiento de ingreso), fichas técnicas y opiniones en MongoDB.
+
+Cada sede tiene su propio surtido, definido en `PERFILES_SEDE` (`api/demo.py`): Chapinero mueve más camisetas y jeans, Centro básicos en volumen y nada de lino, Suba buzos y ropa familiar, y Usaquén chaquetas y vestidos, sin línea infantil. Además, las existencias siguen una curva de tallas (más M y L que XS y XL), algunas referencias quedan agotadas o en sus últimas unidades, y cada existencia tiene su **stock mínimo**. Así el panel muestra referencias **por reponer** y en la tienda cambia lo disponible según la sede elegida. Se puede ejecutar varias veces: no duplica nada. Si no tienes MongoDB instalado, `flask --app app sembrar-demo --sin-mongo` carga solo la parte de MySQL.
 
 ### 7. Levantar el servidor
 

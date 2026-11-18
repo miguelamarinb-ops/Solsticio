@@ -18,7 +18,7 @@ from sqlalchemy import select
 from api.errores import ErrorApi
 from api.modelos import Categoria, Color, ImagenProducto, Producto, Sede, Talla, TipoMovimiento, db
 from api.servicios import catalogo, fichas, resenas
-from api.servicios.inventario import registrar_movimiento
+from api.servicios.inventario import obtener_stock, registrar_movimiento
 
 SISTEMA = SimpleNamespace(id_usuario=None)
 
@@ -124,6 +124,66 @@ OPINIONES = [
 ]
 
 
+# Cada sede tiene su público, así que no todas surten lo mismo ni en la misma
+# cantidad. "peso" multiplica las existencias por categoría (1 si no aparece) y
+# "no_surte" lista las prendas que esa sede no maneja. Una sede que no esté aquí
+# (p. ej. creada desde el panel) recibe un surtido parejo.
+PERFILES_SEDE = {
+    # Universitarios y oficinas: rotación alta de camisetas y jeans, poco infantil.
+    "Chapinero": {"peso": {"Camisetas": 1.4, "Jeans": 1.3, "Vestidos": 1.1, "Buzos": 0.8, "Chaquetas": 0.7},
+                  "no_surte": {"Camiseta infantil Sol"}},
+    # Mucho paso de gente y precios bajos: básicos en volumen, casi nada de lino.
+    "Centro": {"peso": {"Camisetas": 1.6, "Buzos": 1.3, "Accesorios": 1.4, "Chaquetas": 0.6, "Vestidos": 0.4},
+               "no_surte": {"Vestido midi de lino"}},
+    # Barrio familiar: lo infantil y los buzos pesan más; poca prenda de ocasión.
+    "Suba": {"peso": {"Buzos": 1.5, "Jeans": 1.2, "Camisetas": 1.1, "Vestidos": 0.6, "Accesorios": 0.7},
+             "no_surte": {"Chaqueta de jean clásica"}},
+    # Clientela de mayor ticket: chaquetas y vestidos, pocos básicos y nada infantil.
+    "Usaquén": {"peso": {"Chaquetas": 1.6, "Vestidos": 1.5, "Jeans": 1.0, "Camisetas": 0.6, "Buzos": 0.7},
+                "no_surte": {"Camiseta infantil Sol", "Camiseta básica cuello V"}},
+}
+
+# Curva de tallas: lo que una tienda suele tener de cada talla con peso 1.
+CURVA_TALLAS = {"XS": 3, "S": 6, "M": 9, "L": 8, "XL": 4}
+
+
+def perfil_de(sede):
+    corto = sede.nombre.removeprefix("Solsticio").strip()
+    return PERFILES_SEDE.get(corto, {"peso": {}, "no_surte": set()})
+
+
+def existencia_objetivo(sede, producto, variante, azar):
+    """(cantidad, stock_minimo) de una variante en una sede, o None si la sede no la surte."""
+    perfil = perfil_de(sede)
+    if producto.nombre in perfil["no_surte"]:
+        return None
+    peso = perfil["peso"].get(producto.categoria.nombre, 1.0)
+    base = CURVA_TALLAS.get(variante.talla.valor, 5) * peso
+    minimo = max(1, round(base * 0.3))
+    sorteo = azar.random()
+    if sorteo < 0.12:
+        cantidad = 0                           # agotada: toca reponer o trasladar
+    elif sorteo < 0.24:
+        cantidad = azar.randint(1, minimo)     # últimas unidades, por debajo del mínimo
+    else:
+        cantidad = max(1, round(base * azar.uniform(0.6, 1.5)))
+    return cantidad, minimo
+
+
+def repartir_variante(variante, sedes, azar):
+    """Reparto de una variante entre las sedes que la surten: {id_sede: (cantidad, minimo)}.
+    Cada variante queda con existencias en al menos una sede."""
+    reparto = {}
+    for sede in sedes:
+        objetivo = existencia_objetivo(sede, variante.producto, variante, azar)
+        if objetivo is not None:
+            reparto[sede.id_sede] = objetivo
+    if reparto and not any(c for c, _ in reparto.values()):
+        id_sede = azar.choice(sorted(reparto))
+        reparto[id_sede] = (max(3, reparto[id_sede][1] + 1), reparto[id_sede][1])
+    return reparto
+
+
 def _uno(modelo, columna, valor):
     return db.session.scalars(select(modelo).where(columna == valor)).first()
 
@@ -176,15 +236,14 @@ def sembrar(semilla=7, con_mongo=True):
         for variante in producto.variantes:
             if variante.stocks:
                 continue
-            reparto = [azar.choice([0, 0, 2, 4, 6, 8, 12, 15]) for _ in sedes]
-            if not any(reparto):
-                reparto[azar.randrange(len(sedes))] = 4  # cada variante queda en al menos una sede
-            for sede, cantidad in zip(sedes, reparto):
+            for id_sede, (cantidad, minimo) in repartir_variante(variante, sedes, azar).items():
                 if cantidad:
-                    registrar_movimiento(id_sede=sede.id_sede, variante=variante, tipo=TipoMovimiento.INGRESO,
+                    registrar_movimiento(id_sede=id_sede, variante=variante, tipo=TipoMovimiento.INGRESO,
                                          cantidad=cantidad, usuario=None, tipo_referencia="INGRESO",
                                          observacion="Inventario inicial de demostración")
                     resumen["ingresos"] += 1
+                stock = obtener_stock(id_sede, variante.id_variante, crear=True)
+                stock.stock_minimo = minimo
         db.session.commit()
 
         if con_mongo and fichas.obtener_ficha(producto.id_producto) is None:

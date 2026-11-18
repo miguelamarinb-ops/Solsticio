@@ -116,7 +116,9 @@ ENDPOINTS = {
         t="Catálogo", r="Buscar productos",
         d="Catálogo paginado con filtros. Con token de ADMINISTRADOR y inactivos=true incluye los desactivados.",
         q=[("q", "string", "Texto a buscar"), ("categoria", "integer", "id_categoria"),
-           ("genero", "string", "HOMBRE, MUJER o UNISEX"), ("sede", "integer", "Solo con stock en la sede"),
+           ("genero", "string", "HOMBRE, MUJER, UNISEX o INFANTIL"),
+           ("sede", "integer", "stock_total y tallas_disponibles cuentan solo esa sede"),
+           ("disponibles", "boolean", "Solo prendas con existencias libres (en la sede, si se indica)"),
            ("inactivos", "boolean", "Solo administrador")] + PAGINA),
     "catalogo.obtener_producto": dict(
         t="Catálogo", r="Detalle de producto",

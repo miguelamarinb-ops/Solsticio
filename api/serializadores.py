@@ -95,9 +95,14 @@ def _variantes_activas(producto):
     )
 
 
+def _libre(stock):
+    return max(stock.cantidad - stock.cantidad_reservada, 0)
+
+
 def disponibilidad(variante, sedes):
-    """Existencias desglosadas por sede: una entrada por cada sede activa, aunque tenga 0."""
-    por_sede = {s.id_sede: s.cantidad for s in variante.stocks}
+    """Existencias libres desglosadas por sede: una entrada por cada sede activa, aunque
+    tenga 0. Lo reservado por pedidos web sin pagar no se cuenta, porque no se puede vender."""
+    por_sede = {s.id_sede: _libre(s) for s in variante.stocks}
     return [
         {"id_sede": sede.id_sede, "sede": sede.nombre, "cantidad": por_sede.get(sede.id_sede, 0)}
         for sede in sedes
@@ -109,7 +114,7 @@ def producto_resumen(producto, sedes):
     stock_total = 0
     tallas = []
     for variante in _variantes_activas(producto):
-        cantidad = sum(s.cantidad for s in variante.stocks if s.id_sede in ids_sedes)
+        cantidad = sum(_libre(s) for s in variante.stocks if s.id_sede in ids_sedes)
         stock_total += cantidad
         if cantidad > 0 and variante.talla.valor not in tallas:
             tallas.append(variante.talla.valor)

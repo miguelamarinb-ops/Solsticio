@@ -107,6 +107,8 @@
 .tabla tr:last-child td { border-bottom: 0; }
 .tabla .num { text-align: right; white-space: nowrap; }
 .tabla a { font-weight: 650; }
+/* Códigos (SKU, guías) en una sola línea: partidos letra por letra no se pueden leer */
+.tabla small { white-space: nowrap; color: var(--indigo-suave); }
 .fila-enlace { cursor: pointer; }
 .fila-enlace:hover td { background: var(--fondo-hover); }
 .col-miniatura { width: 3.5rem; }

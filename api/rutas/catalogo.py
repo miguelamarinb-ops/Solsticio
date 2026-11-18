@@ -3,11 +3,11 @@ catalogo.py
 Consultas públicas del catálogo: categorías, sedes, productos, variantes y QR.
 """
 from flask import Blueprint, g, jsonify, request
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.orm import selectinload
 
 from api.errores import ErrorApi
-from api.modelos import Categoria, Color, Genero, Producto, Talla, Variante, db
+from api.modelos import Categoria, Color, Genero, Producto, Stock, Talla, Variante, db
 from api.seguridad import auth_opcional, es_admin
 from api.serializadores import (
     categoria_dict, disponibilidad_detallada, producto_detalle, producto_resumen, sede_dict,
@@ -71,7 +71,6 @@ def listar_productos():
     if request.args.get("q"):
         consulta = consulta.where(Producto.nombre.ilike(f"%{request.args['q'].strip()}%"))
 
-    resultado = db.paginate(consulta, page=pagina, per_page=tamano, error_out=False)
     sedes = sedes_activas()
     # ?sede=N: stock_total y tallas_disponibles cuentan solo esa sede (la tienda muestra "hay en tu sede").
     id_sede = arg_entero("sede", minimo=1)
@@ -79,6 +78,16 @@ def listar_productos():
         sedes = [s for s in sedes if s.id_sede == id_sede]
         if not sedes:
             raise ErrorApi(404, "La sede no existe o está inactiva")
+    # ?disponibles=true: solo prendas con existencias libres en esas sedes. Se filtra aquí
+    # y no en la página para que el total y la paginación cuenten lo mismo que se ve.
+    if arg_booleano("disponibles"):
+        consulta = consulta.where(exists(
+            select(Stock.id_variante).join(Variante, Variante.id_variante == Stock.id_variante).where(
+                Variante.id_producto == Producto.id_producto, Variante.activo.is_(True),
+                Stock.id_sede.in_([s.id_sede for s in sedes]),
+                Stock.cantidad > Stock.cantidad_reservada)))
+
+    resultado = db.paginate(consulta, page=pagina, per_page=tamano, error_out=False)
     return jsonify({
         "total": resultado.total,
         "page": pagina,

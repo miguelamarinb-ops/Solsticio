@@ -50,8 +50,10 @@ function pintarCompra() {
   const nombreMiSede = corto(variante.disponibilidad.find((d) => d.id_sede === sedeMia)?.sede ?? "tu sede");
 
   let resumen;
-  if (enMiSede > 0) {
-    resumen = el("p", { class: "texto-si" }, `Hay ${enMiSede} ${enMiSede === 1 ? "unidad" : "unidades"} en ${nombreMiSede}.`);
+  if (enMiSede > 0 && enMiSede <= 3) {
+    resumen = el("p", { class: "texto-pocas" }, `${enMiSede === 1 ? "Queda la última unidad" : `Quedan las últimas ${enMiSede} unidades`} en ${nombreMiSede}.`);
+  } else if (enMiSede > 0) {
+    resumen = el("p", { class: "texto-si" }, `Hay ${enMiSede} unidades en ${nombreMiSede}.`);
   } else if (otras.length) {
     resumen = el("p", {}, el("span", { class: "texto-no" }, `Agotado en ${nombreMiSede}. `), `Lo encuentras en ${otras.join(" y ")}.`);
   } else {
@@ -73,7 +75,7 @@ function pintarCompra() {
       el("li", { class: d.id_sede === sedeMia ? "es-mia" : null },
         el("span", {}, d.sede.replace(/^Solsticio\s+/, ""), d.id_sede === sedeMia ? " (tu sede)" : ""),
         el("span", { class: d.cantidad ? "" : "texto-no" }, d.cantidad ? `${d.cantidad}` : "Agotado"),
-        el("span", { class: "sedes__barra", "aria-hidden": "true" },
+        el("span", { class: `sedes__barra${d.cantidad > 0 && d.cantidad <= 3 ? " sedes__barra--pocas" : ""}`, "aria-hidden": "true" },
           el("span", { style: `width:${Math.round((d.cantidad / mayor) * 100)}%` }))))),
   );
 }

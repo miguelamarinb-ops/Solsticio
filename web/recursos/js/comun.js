@@ -173,6 +173,16 @@ function actualizarContadorCarrito() {
 // ---------------------------------------------------------------------
 // Cabecera de la tienda (se arma igual en todas las páginas)
 // ---------------------------------------------------------------------
+// El pie nombra las sedes reales (las activas), no una lista escrita a mano.
+function pintarSedesPie(sedes) {
+  const zona = document.querySelector("[data-pie-sedes]");
+  const nombres = sedes.map((s) => sinPrefijo(s.nombre));
+  if (!zona || !nombres.length) return;
+  const lista = nombres.length === 1 ? nombres[0]
+    : `${nombres.slice(0, -1).join(", ")} y ${nombres.at(-1)}`;
+  zona.textContent = `Solsticio, tiendas en ${lista} (Bogotá).`;
+}
+
 export async function iniciarCabecera({ alCambiarSede, busqueda = "" } = {}) {
   const cabecera = document.querySelector("[data-cabecera]");
   const actual = location.pathname;
@@ -201,6 +211,7 @@ export async function iniciarCabecera({ alCambiarSede, busqueda = "" } = {}) {
   selector.replaceChildren(...sedes.map((s) =>
     el("option", { value: s.id_sede, selected: s.id_sede === elegida }, sinPrefijo(s.nombre))));
   if (elegida) escribir("solsticio.sede", elegida);
+  pintarSedesPie(sedes);
   selector.addEventListener("change", () => {
     escribir("solsticio.sede", Number(selector.value));
     alCambiarSede?.(Number(selector.value));

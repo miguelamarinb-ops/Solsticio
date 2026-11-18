@@ -23,6 +23,12 @@ export async function render(principal, ctx, { vista = "existencias" }) {
   await vistasRender[vista](contenido, ctx);
 }
 
+// Agotada (no queda nada) pesa más que "por reponer" (queda poco, en el mínimo o debajo).
+export function estadoExistencia(s) {
+  if (s.cantidad <= 0) return insignia("Agotada", "rojo");
+  return s.bajo_minimo ? insignia("Por reponer", "sol") : "";
+}
+
 // ---------------------------------------------------------------------
 async function existencias(contenido, ctx) {
   const q = ctx.consulta();
@@ -40,9 +46,10 @@ async function existencias(contenido, ctx) {
       { titulo: "Existencias", valor: (s) => String(s.cantidad), clase: "num" },
       { titulo: "Reservadas", valor: (s) => String(s.cantidad_reservada), clase: "num" },
       { titulo: "Disponibles", valor: (s) => el("strong", { class: s.disponible > 0 ? "" : "texto-no" }, String(s.disponible)), clase: "num" },
-      { titulo: "", valor: (s) => (s.bajo_minimo ? insignia("Agotada", "rojo") : "") },
-    ], visibles, { vacio: "No hay existencias con estos filtros." }),
-    el("p", { class: "nota" }, `${visibles.length} referencias. Reservadas = apartadas por pedidos web sin pagar.`));
+      { titulo: "Mínimo", valor: (s) => String(s.stock_minimo), clase: "num" },
+      { titulo: "", valor: estadoExistencia },
+    ], visibles, { vacio: filtros.bajo ? "No hay nada por reponer con estos filtros." : "No hay existencias con estos filtros." }),
+    el("p", { class: "nota" }, `${visibles.length} referencias. Reservadas = apartadas por pedidos web sin pagar. Por reponer = en el mínimo de la sede o por debajo.`));
   };
 
   async function cargar() {
@@ -64,7 +71,7 @@ async function existencias(contenido, ctx) {
       ctx.esAdmin ? campo("Sede", selector("id_sede", opcionesSedes(ctx.sedes, "Todas"), filtros.id_sede,
         { onchange: (e) => { filtros.id_sede = e.target.value; cargar(); } })) : null,
       campo("Buscar", buscador),
-      el("label", { class: "casilla" }, bajo, " Solo agotadas")),
+      el("label", { class: "casilla" }, bajo, " Solo por reponer")),
     zona);
   await cargar();
 }

@@ -15,13 +15,17 @@ export async function render(principal, ctx) {
   const { usuario, esAdmin } = ctx;
   const sede = esAdmin ? "" : `&id_sede=${usuario.id_sede ?? usuario.sede?.id_sede ?? ""}`;
 
-  const [porCobrar, porPreparar, enCamino, agotados, recientes] = await Promise.all([
+  const [porCobrar, porPreparar, enCamino, bajoMinimo, recientes] = await Promise.all([
     total(papi(`/pedidos?estado=PENDIENTE&size=1${sede}`)),
     total(papi(`/pedidos?estado=PAGADO&size=1${sede}`)),
     total(papi("/traslados?estado=EN_TRANSITO&size=1")),
     papi(`/stock?bajo_minimo=true${sede}`).catch(() => []),
     papi(`/pedidos?size=6${sede}`).catch(() => ({ items: [] })),
   ]);
+  // Primero lo agotado y luego lo que queda más lejos de su mínimo.
+  const porReponer = [...bajoMinimo].sort((a, b) =>
+    (a.cantidad > 0) - (b.cantidad > 0) || (a.cantidad - a.stock_minimo) - (b.cantidad - b.stock_minimo));
+  const agotadas = porReponer.filter((s) => s.cantidad <= 0).length;
 
   const saludo = new Date().getHours() < 12 ? "Buenos días" : new Date().getHours() < 19 ? "Buenas tardes" : "Buenas noches";
   const cabecera = encabezado(`${saludo}, ${usuario.nombres}`,
@@ -34,7 +38,8 @@ export async function render(principal, ctx) {
       cifra(porCobrar, "pedidos por cobrar", "#/pedidos?estado=PENDIENTE", porCobrar ? "sol" : null),
       cifra(porPreparar, "pagados por preparar o entregar", "#/pedidos?estado=PAGADO", porPreparar ? "azul" : null),
       cifra(enCamino, "traslados en camino", "#/traslados?estado=EN_TRANSITO"),
-      cifra(agotados.length, "referencias agotadas", "#/inventario?bajo_minimo=1", agotados.length ? "rojo" : null)),
+      cifra(porReponer.length, agotadas ? `referencias por reponer (${agotadas} agotadas)` : "referencias por reponer",
+        "#/inventario?bajo_minimo=1", agotadas ? "rojo" : porReponer.length ? "sol" : null)),
     el("div", { class: "rejilla-panel" },
       el("section", { class: "tarjeta" },
         el("h2", {}, "Últimos pedidos"),
@@ -49,9 +54,10 @@ export async function render(principal, ctx) {
         tabla([
           { titulo: "Prenda", valor: (s) => s.descripcion },
           { titulo: "Sede", valor: (s) => sinPrefijo(s.sede) },
-          { titulo: "Quedan", valor: (s) => String(s.cantidad), clase: "num" },
-        ], agotados.slice(0, 6), { vacio: "Ninguna referencia está agotada." }),
-        agotados.length > 6 ? el("p", { class: "nota" }, el("a", { href: "#/inventario?bajo_minimo=1" }, `Ver las ${agotados.length}`)) : null)),
+          { titulo: "Quedan", valor: (s) => el("span", { class: s.cantidad > 0 ? "" : "texto-no" }, String(s.cantidad)), clase: "num" },
+          { titulo: "Mínimo", valor: (s) => String(s.stock_minimo), clase: "num" },
+        ], porReponer.slice(0, 6), { vacio: "No hay nada por reponer: todo está sobre su mínimo." }),
+        porReponer.length > 6 ? el("p", { class: "nota" }, el("a", { href: "#/inventario?bajo_minimo=1" }, `Ver las ${porReponer.length}`)) : null)),
   );
 
   if (esAdmin) {

@@ -43,6 +43,12 @@ for ruta, archivo in PAGINAS.items():
     bp.add_url_rule(ruta, view_func=_servir(archivo), methods=["GET"])
 
 
+@bp.get("/favicon.ico")
+def favicon():
+    # Los navegadores piden /favicon.ico aunque la página declare el SVG; así no queda un 404.
+    return send_from_directory(CARPETA_WEB / "recursos" / "img", "favicon.svg", mimetype="image/svg+xml")
+
+
 @bp.get("/recursos/<path:archivo>")
 def recursos(archivo):
     # send_from_directory rechaza rutas que intenten salir de la carpeta (../).
