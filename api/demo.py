@@ -125,22 +125,28 @@ OPINIONES = [
 
 
 # Cada sede tiene su público, así que no todas surten lo mismo ni en la misma
-# cantidad. "peso" multiplica las existencias por categoría (1 si no aparece) y
-# "no_surte" lista las prendas que esa sede no maneja. Una sede que no esté aquí
-# (p. ej. creada desde el panel) recibe un surtido parejo.
+# cantidad. "tamano" escala todo el local (bodega grande o boutique), "peso"
+# multiplica por categoría (1 si no aparece) y "no_surte" lista las prendas que
+# esa sede no maneja. Toda prenda queda surtida en al menos dos sedes. Una sede
+# que no esté aquí (p. ej. creada desde el panel) recibe un surtido parejo.
 PERFILES_SEDE = {
-    # Universitarios y oficinas: rotación alta de camisetas y jeans, poco infantil.
-    "Chapinero": {"peso": {"Camisetas": 1.4, "Jeans": 1.3, "Vestidos": 1.1, "Buzos": 0.8, "Chaquetas": 0.7},
-                  "no_surte": {"Camiseta infantil Sol"}},
-    # Mucho paso de gente y precios bajos: básicos en volumen, casi nada de lino.
-    "Centro": {"peso": {"Camisetas": 1.6, "Buzos": 1.3, "Accesorios": 1.4, "Chaquetas": 0.6, "Vestidos": 0.4},
-               "no_surte": {"Vestido midi de lino"}},
-    # Barrio familiar: lo infantil y los buzos pesan más; poca prenda de ocasión.
-    "Suba": {"peso": {"Buzos": 1.5, "Jeans": 1.2, "Camisetas": 1.1, "Vestidos": 0.6, "Accesorios": 0.7},
-             "no_surte": {"Chaqueta de jean clásica"}},
-    # Clientela de mayor ticket: chaquetas y vestidos, pocos básicos y nada infantil.
-    "Usaquén": {"peso": {"Chaquetas": 1.6, "Vestidos": 1.5, "Jeans": 1.0, "Camisetas": 0.6, "Buzos": 0.7},
-                "no_surte": {"Camiseta infantil Sol", "Camiseta básica cuello V"}},
+    # Universitarios y oficinas: jeans, camisetas y vestidos; nada infantil ni de lluvia.
+    "Chapinero": {"tamano": 1.0,
+                  "peso": {"Jeans": 1.6, "Camisetas": 1.3, "Vestidos": 1.2, "Buzos": 0.7, "Chaquetas": 0.6},
+                  "no_surte": {"Camiseta infantil Sol", "Chaqueta impermeable La Calera", "Buzo cuello redondo"}},
+    # El local más grande y de más paso: básicos en volumen, nada de ocasión.
+    "Centro": {"tamano": 1.5,
+               "peso": {"Camisetas": 1.6, "Buzos": 1.4, "Accesorios": 1.5, "Jeans": 0.9},
+               "no_surte": {"Vestido midi de lino", "Chaqueta de jean clásica", "Chaqueta impermeable La Calera"}},
+    # Barrio familiar: buzos, infantil y ropa para la lluvia; poca prenda de ocasión.
+    "Suba": {"tamano": 0.9,
+             "peso": {"Buzos": 1.7, "Camisetas": 1.2, "Chaquetas": 1.3, "Jeans": 0.8, "Accesorios": 0.6},
+             "no_surte": {"Vestido midi de lino", "Chaqueta de jean clásica", "Camiseta manga larga"}},
+    # Boutique de mayor ticket: chaquetas, vestidos y jeans; casi nada de básicos.
+    "Usaquén": {"tamano": 0.6,
+                "peso": {"Chaquetas": 2.0, "Vestidos": 2.0, "Jeans": 1.2, "Camisetas": 0.7},
+                "no_surte": {"Camiseta infantil Sol", "Camiseta básica cuello V", "Camiseta oversize algodón",
+                             "Buzo con capota Monserrate", "Gorra Solsticio"}},
 }
 
 # Curva de tallas: lo que una tienda suele tener de cada talla con peso 1.
@@ -149,7 +155,7 @@ CURVA_TALLAS = {"XS": 3, "S": 6, "M": 9, "L": 8, "XL": 4}
 
 def perfil_de(sede):
     corto = sede.nombre.removeprefix("Solsticio").strip()
-    return PERFILES_SEDE.get(corto, {"peso": {}, "no_surte": set()})
+    return PERFILES_SEDE.get(corto, {"tamano": 1.0, "peso": {}, "no_surte": set()})
 
 
 def existencia_objetivo(sede, producto, variante, azar):
@@ -157,7 +163,7 @@ def existencia_objetivo(sede, producto, variante, azar):
     perfil = perfil_de(sede)
     if producto.nombre in perfil["no_surte"]:
         return None
-    peso = perfil["peso"].get(producto.categoria.nombre, 1.0)
+    peso = perfil["tamano"] * perfil["peso"].get(producto.categoria.nombre, 1.0)
     base = CURVA_TALLAS.get(variante.talla.valor, 5) * peso
     minimo = max(1, round(base * 0.3))
     sorteo = azar.random()
